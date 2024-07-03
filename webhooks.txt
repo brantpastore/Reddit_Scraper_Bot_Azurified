@@ -1,0 +1,5 @@
+test_memes_webhook = https://discord.com/api/webhooks/1257428323525591162/5524Jri5RRLfaU8y7XBr1cLl5zqHLvO_XaHF9pU7FaY0gvw0LB-00a3JzmBsq2jqKBwF
+
+production_memes_webhook = https://discord.com/api/webhooks/1256729712558997636/3kJ-pRBISUkorNMiDKFlG3sDO0K6aOfc-iFzjtPGH3HpIChZOeCUE4B-sh9oJgwao74I
+
+warfootage_webhook = https://discord.com/api/webhooks/1256729251126968441/O4EjarVM_VK2c1QpfBzE6h74Fxuv0AD8trapwrAKcUzSlYbPxZROvPXDfYW8eFlphdn3
