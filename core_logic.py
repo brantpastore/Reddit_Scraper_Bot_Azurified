@@ -239,7 +239,7 @@ class ScraperBot:
 
         title_payload = {"content": title}
         files = {"file": open(image_filename, "rb")}
-        requests.post(warfootage_webhook, files=files, data=title_payload)
+        requests.post(test_memes_webhook, files=files, data=title_payload)
         files["file"].close()
         os.remove(image_filename)
 
@@ -295,7 +295,7 @@ class ScraperBot:
                     )
                     # post to discord the title, and the url of the video
                     title_payload = {"content": title}
-                    requests.post(warfootage_webhook, data=title_payload)
+                    requests.post(test_memes_webhook, data=title_payload)
                     return
 
             except subprocess.TimeoutExpired:
@@ -317,7 +317,7 @@ class ScraperBot:
         # Send video to Discord or further processing
         title_payload = {"content": title}
         files = {"file": open(video_filename, "rb")}
-        requests.post(warfootage_webhook, files=files, data=title_payload)
+        requests.post(test_memes_webhook, files=files, data=title_payload)
         files["file"].close()
         os.remove(video_filename)
 
