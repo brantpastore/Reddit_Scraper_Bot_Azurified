@@ -1,5 +1,5 @@
-# Description: 
-# This file contains the main function that runs the 
+# Description:
+# This file contains the main function that runs the
 # bot in either CLI mode or Discord bot mode.
 import time
 import core_logic
