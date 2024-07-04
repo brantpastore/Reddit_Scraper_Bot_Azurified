@@ -3,6 +3,7 @@
 # It uses Selenium to scrape posts from Reddit and sends the results to a Discord channel using webhooks.
 # The bot can be run in the CLI or as a Discord bot.
 from selenium import webdriver
+import chromedriver_autoinstaller
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
