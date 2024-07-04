@@ -33,9 +33,7 @@ load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
 # Webhook URLs
-test_memes_webhook = "https://discord.com/api/webhooks/1257428323525591162/5524Jri5RRLfaU8y7XBr1cLl5zqHLvO_XaHF9pU7FaY0gvw0LB-00a3JzmBsq2jqKBwF"
-production_memes_webhook = "https://discord.com/api/webhooks/1256729712558997636/3kJ-pRBISUkorNMiDKFlG3sDO0K6aOfc-iFzjtPGH3HpIChZOeCUE4B-sh9oJgwao74I"
-warfootage_webhook = "https://discord.com/api/webhooks/1256729251126968441/O4EjarVM_VK2c1QpfBzE6h74Fxuv0AD8trapwrAKcUzSlYbPxZROvPXDfYW8eFlphdn3"
+webhook = os.getenv("WEBHOOK")
 
 
 # Function to sanitize the filename of the image or video scraped from Reddit
@@ -239,7 +237,7 @@ class ScraperBot:
 
         title_payload = {"content": title}
         files = {"file": open(image_filename, "rb")}
-        requests.post(test_memes_webhook, files=files, data=title_payload)
+        requests.post(test_webhook, files=files, data=title_payload)
         files["file"].close()
         os.remove(image_filename)
 
@@ -295,7 +293,7 @@ class ScraperBot:
                     )
                     # post to discord the title, and the url of the video
                     title_payload = {"content": title}
-                    requests.post(test_memes_webhook, data=title_payload)
+                    requests.post(test_webhook, data=title_payload)
                     return
 
             except subprocess.TimeoutExpired:
@@ -317,7 +315,7 @@ class ScraperBot:
         # Send video to Discord or further processing
         title_payload = {"content": title}
         files = {"file": open(video_filename, "rb")}
-        requests.post(test_memes_webhook, files=files, data=title_payload)
+        requests.post(test_webhook, files=files, data=title_payload)
         files["file"].close()
         os.remove(video_filename)
 
