@@ -1,0 +1,7 @@
+selenium
+webdriver-manager
+discord
+python-dotenv
+requests
+m3u8
+ffmpeg-python
