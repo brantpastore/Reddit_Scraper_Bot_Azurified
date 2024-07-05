@@ -34,43 +34,29 @@ stages:
       name: SelfHosted-DevOps
       vmImage: $(vmImageName)
     steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '$(pythonVersion)'
-        architecture: 'x64'
-        addToPath: true
-      displayName: 'Use Python $(pythonVersion)'
+     - task: Docker@2
+       displayName: Build an image
+       inputs:
+        repository: $(vmImageName)
+        command: build
+        Dockerfile: app/Dockerfile
 
-    - script: |
-        python -m venv antenv
-        source antenv/bin/activate
-        python -m pip install --upgrade pip
-        python -m pip install setup
-        python -m pip install -r requirements.txt
-      workingDirectory: $(projectRoot)
-      displayName: "Install pip/python requirements"
+     - task: CmdLine@2
+       inputs:
+         script: |
+          apt-get -y update
+          displayName: "Update Image"
 
-    - script: |
-        apt-get -y update
-      workingDirectory: $(projectRoot)
-      displayName: "Update box"
 
-    - task: ArchiveFiles@2
-      displayName: 'Archive files'
-      inputs:
-        rootFolderOrFile: '$(projectRoot)'
-        includeRootFolder: false
-        archiveType: zip
-        archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
-        replaceExistingArchive: true
-
-    - upload: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
-      displayName: 'Upload package'
-      artifact: drop
+     - task: CmdLine@2
+       inputs:
+         script: |
+          apt-get install -y python
+          displayName: "install python"
+        
 
 - stage: Deploy
   displayName: 'Deploy Web App'
-  condition: succeeded()
   jobs:
   - deployment: DeploymentJob
     pool:
@@ -82,10 +68,9 @@ stages:
         deploy:
           steps:
 
-          - task: UsePythonVersion@0
-            inputs:
-              versionSpec: '$(pythonVersion)'
-            displayName: 'Use Python version'
+          - task: Docker@2
+          - task: CmdLine@2
+          - task: CmdLine@2
 
           - task: AzureWebApp@1
             displayName: 'Deploy Azure Web App : feashdiscordapp'
