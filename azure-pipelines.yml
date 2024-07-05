@@ -1,0 +1,112 @@
+# Python to Linux Web App on Azure
+# Build your Python project and deploy it to Azure as a Linux Web App.
+# Change python version to one thats appropriate for your application.
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
+trigger:
+- main
+
+variables:
+  # Azure Resource Manager connection created during pipeline creation
+  azureServiceConnectionId: 'c3fafb5b-10fc-4f2e-8f6e-428f97cf294a'
+
+  # Web app name
+  webAppName: 'feashdiscordapp'
+
+  # Agent VM image name
+  vmImageName: 'ubuntu-latest'
+
+  # Environment name
+  environmentName: 'feashdiscordapp'
+
+  # Project root folder. Point to the folder containing manage.py file.
+  projectRoot: $(System.DefaultWorkingDirectory)
+
+  # Python version: 3.7
+  pythonVersion: '3.7'
+
+stages:
+- stage: Build
+  displayName: Build stage
+  jobs:
+  - job: BuildJob
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(pythonVersion)'
+      displayName: 'Use Python $(pythonVersion)'
+
+    - script: |
+        python -m venv antenv
+        source antenv/bin/activate
+        python -m pip install --upgrade pip
+        pip install setup
+        pip install -r requirements.txt
+      workingDirectory: $(projectRoot)
+      displayName: "Install pip/python requirements"
+
+
+    - task: ArchiveFiles@2
+      displayName: 'Archive files'
+      inputs:
+        rootFolderOrFile: '$(projectRoot)'
+        includeRootFolder: false
+        archiveType: zip
+        archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+        replaceExistingArchive: true
+
+    - upload: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+      displayName: 'Upload package'
+      artifact: drop
+
+- stage: UpdateSystem
+  displayName: Update Box
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - job: UpdateSystemPrograms
+    steps:
+    - script: apt-get -y update
+
+- stage: InstallChrome
+  displayName: Install Chrome and Dependencies
+  dependsOn: UpdateSystem
+  condition: succeeded()
+  jobs:
+  - job: UpdateSystemPrograms
+    steps:
+    - script: |
+        apt install -y libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev
+        apt-get install -y libappindicator1 fonts-liberation
+        wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        sudo dpkg -i google-chrome*.deb
+      workingDirectory: $(projectRoot)
+      displayName: "Install Chrome and dependencies"
+
+- stage: Deploy
+  displayName: 'Deploy Web App'
+  dependsOn: InstallChrome
+  condition: succeeded()
+  jobs:
+  - deployment: DeploymentJob
+    pool:
+      vmImage: $(vmImageName)
+    environment: $(environmentName)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '$(pythonVersion)'
+            displayName: 'Use Python version'
+
+          - task: AzureWebApp@1
+            displayName: 'Deploy Azure Web App : feashdiscordapp'
+            inputs:
+              azureSubscription: $(azureServiceConnectionId)
+              appName: $(webAppName)
+              package: $(Pipeline.Workspace)/drop/$(Build.BuildId).zip
