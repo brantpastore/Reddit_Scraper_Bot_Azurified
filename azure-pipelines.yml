@@ -41,12 +41,12 @@ stages:
       displayName: 'Use Python $(pythonVersion)'
 
     - script: |
-        py -m venv antenv
+        python -m venv antenv
         source antenv/bin/activate
-        py -m pip install --upgrade pip
-        pip install setup
-        pip install -r requirements.txt
-        pythonInterpreter: 'C:\agent\_work\_tool\Python\3.10.11\x64\python-3.10.11-amd64.exe'
+        python -m pip install --upgrade pip
+        python -m pip install setup
+        python -m pip install -r requirements.txt
+        pythonInterpreter: 'C:\Users\brant\AppData\Local\Programs\Python\Python310\python.exe'
       workingDirectory: $(projectRoot)
       displayName: "Install pip/python requirements"
 
