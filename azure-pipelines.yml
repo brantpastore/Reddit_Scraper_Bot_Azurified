@@ -50,6 +50,10 @@ stages:
       workingDirectory: $(projectRoot)
       displayName: "Install pip/python requirements"
 
+    - script: |
+        apt-get -y update
+      workingDirectory: $(projectRoot)
+      displayName: "Update box"
 
     - task: ArchiveFiles@2
       displayName: 'Archive files'
@@ -64,33 +68,8 @@ stages:
       displayName: 'Upload package'
       artifact: drop
 
-- stage: UpdateSystem
-  displayName: Update Box
-  dependsOn: Build
-  condition: succeeded()
-  jobs:
-  - job: UpdateSystemPrograms
-    steps:
-    - script: apt-get -y update
-
-- stage: InstallChrome
-  displayName: Install Chrome and Dependencies
-  dependsOn: UpdateSystem
-  condition: succeeded()
-  jobs:
-  - job: UpdateSystemPrograms
-    steps:
-    - script: |
-        apt install -y libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev
-        apt-get install -y libappindicator1 fonts-liberation
-        wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo dpkg -i google-chrome*.deb
-      workingDirectory: $(projectRoot)
-      displayName: "Install Chrome and dependencies"
-
 - stage: Deploy
   displayName: 'Deploy Web App'
-  dependsOn: InstallChrome
   condition: succeeded()
   jobs:
   - deployment: DeploymentJob
@@ -113,4 +92,5 @@ stages:
             inputs:
               azureSubscription: $(azureServiceConnectionId)
               appName: $(webAppName)
+              appType: webAppLinux
               package: $(Pipeline.Workspace)/drop/$(Build.BuildId).zip
