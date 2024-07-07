@@ -6,3 +6,5 @@ requests
 m3u8
 ffmpeg-python
 chromedriver_autoinstaller
+azure-keyvault-secrets
+azure-identity

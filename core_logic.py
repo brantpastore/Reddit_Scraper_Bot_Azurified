@@ -3,6 +3,7 @@
 # It uses Selenium to scrape posts from Reddit and sends the results to a Discord channel using webhooks.
 # The bot can be run in the CLI or as a Discord bot.
 from selenium import webdriver
+
 # import chromedriver_autoinstaller
 
 from selenium.webdriver.common.by import By
@@ -12,6 +13,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 from discord import app_commands
 from dotenv import load_dotenv
 from urllib.parse import urlparse, urljoin
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
 import time
 import requests
 import re
@@ -28,14 +31,30 @@ import ffmpeg
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load environment variables
-load_dotenv()
+# Check if running in a web server environment
+if os.getenv("SERVER_SOFTWARE") is not None:
+    # Running in a web server environment (e.g., Azure App Service, Heroku)
 
-# Discord token
-DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+    # Azure Key Vault URL
+    vault_url = "https://FeashDiscordBot.vault.azure.net/"
 
-# Webhook URLs
-webhook = os.getenv("WEBHOOK")
+    # Create a secret client
+    credential = DefaultAzureCredential()
+    client = SecretClient(vault_url=vault_url, credential=credential)
+
+    # Retrieve secrets from Azure Key Vault
+    DISCORD_TOKEN = client.get_secret("DISCORD-TOKEN").value
+    webhook = client.get_secret("WEBHOOK").value
+
+else:
+    # Running in a CLI or local environment
+
+    # Load environment variables from a .env file
+    load_dotenv()
+
+    # Discord token and webhook URLs from local environment variables
+    DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+    webhook = os.getenv("WEBHOOK")
 
 
 # Function to sanitize the filename of the image or video scraped from Reddit
@@ -50,12 +69,11 @@ class ScraperBot:
         # set up selenium options for headless browsing
         options = Options()
         options.add_argument("--headless")
-        options.add_argument('--no-sandbox')
+        options.add_argument("--no-sandbox")
         options.add_argument(
             "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         )
-        
-        
+
         # service = Service(chromedriver_autoinstaller.install())
         service = Service(ChromeDriverManager().install())
         self.driver = webdriver.Chrome(service=service, options=options)
@@ -126,7 +144,7 @@ class ScraperBot:
             subreddit_url,
             num_posts,
             caller="discord_interaction",
-            interaction=interaction
+            interaction=interaction,
         )
 
     # Function to get the subreddit from the user in the CLI
@@ -204,11 +222,13 @@ class ScraperBot:
             for key, value in files.items():
                 await text_channel.send(file=discord.File(value))
                 files[key].close()
-            
+
         return
 
     # Get the top posts from the subreddit
-    async def get_top_posts(self, subreddit, num_posts=1, caller=None, interaction=None):
+    async def get_top_posts(
+        self, subreddit, num_posts=1, caller=None, interaction=None
+    ):
 
         self.go_to_subreddit(subreddit)
 
