@@ -39,7 +39,7 @@ stages:
        inputs:
         repository: $(vmImageName)
         command: build
-        Dockerfile: app/Dockerfile
+        Dockerfile: $(Build.SourcesDirectory/Dockerfile)
 
      - task: CmdLine@2
        inputs:
