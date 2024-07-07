@@ -4,8 +4,6 @@
 # The bot can be run in the CLI or as a Discord bot.
 from selenium import webdriver
 import chromedriver_autoinstaller
-
-
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -51,12 +49,11 @@ class ScraperBot:
         # set up selenium options for headless browsing
         options = Options()
         options.add_argument("--headless")
+        options.add_argument("--no-sandbox")
         options.add_argument(
             "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         )
-        
-        
-        service = Service(chromedriver_autoinstaller.install())
+        service = Service(ChromeDriverManager().install())
         self.driver = webdriver.Chrome(service=service, options=options)
 
         # Set up the Discord bot with specific intents
@@ -121,9 +118,11 @@ class ScraperBot:
 
     # Scrapes a subreddit and sends the results to the Discord channel
     async def scrape_subreddit(self, interaction, subreddit_url, num_posts):
-        self.get_top_posts(subreddit_url, num_posts)
-        await interaction.followup.send(
-            f"Finished scraping {num_posts} posts from {subreddit_url}"
+        await self.get_top_posts(
+            subreddit_url,
+            num_posts,
+            caller="discord_interaction",
+            interaction=interaction
         )
 
     # Function to get the subreddit from the user in the CLI
@@ -184,8 +183,28 @@ class ScraperBot:
 
         return posts
 
+    async def send_to_discord_channel(self, title_payload, files, interaction):
+        # check the channel the command was called from,
+        # and send the message to that channel
+        text_channel = (
+            interaction.channel
+        )  # get the channel the command was called from
+
+        print(f"Sending message to channel: {text_channel}")
+
+        # send the message with the title payload
+        await text_channel.send(content=title_payload["content"])
+
+        # send the files if there are any
+        if files:
+            for key, value in files.items():
+                await text_channel.send(file=discord.File(value))
+                files[key].close()
+            
+        return
+
     # Get the top posts from the subreddit
-    def get_top_posts(self, subreddit, num_posts=1):
+    async def get_top_posts(self, subreddit, num_posts=1, caller=None, interaction=None):
 
         self.go_to_subreddit(subreddit)
 
@@ -193,10 +212,10 @@ class ScraperBot:
 
         for i, url in enumerate(post_urls):  # Loop through the post URLs
             self.post_urls[i] = url
-            self.get_post_content(url)
+            await self.get_post_content(url, caller, interaction)
 
     # Get the content of a specific post
-    def get_post_content(self, post_url):
+    async def get_post_content(self, post_url, caller=None, interaction=None):
         print("Getting post content for", post_url)
         self.driver.get(post_url)
 
@@ -227,14 +246,14 @@ class ScraperBot:
             print("No video found.")
 
         if image and not video:  # If we found an image but no video, process the image
-            self.process_image(image, title)
+            await self.process_image(image, title, caller, interaction)
         elif video and not image:  # If we found a video but no image, process the video
-            self.process_video(video, title)
+            await self.process_video(video, title, caller, interaction)
         else:
             print("No image or video found.")
 
     # Process the image and send it to the Discord channel
-    def process_image(self, image_url, title):
+    async def process_image(self, image_url, title, caller=None, interaction=None):
         print("Image URL:", image_url)
         self.driver.get(image_url)
         image_filename = sanitize_filename(f"{title}.png")
@@ -242,11 +261,17 @@ class ScraperBot:
 
         title_payload = {"content": title}
         files = {"file": open(image_filename, "rb")}
-        requests.post(test_webhook, files=files, data=title_payload)
+
+        if caller == "cli_interaction":
+            requests.post(webhook, files=files, data=title_payload)
+        else:
+            # handle sending to the discord channel the command was called from
+            await self.send_to_discord_channel(title_payload, files, interaction)
+
         files["file"].close()
         os.remove(image_filename)
 
-    def process_video(self, video_url, title):
+    async def process_video(self, video_url, title, caller=None, interaction=None):
         print("Video URL:", video_url)
         video_response = requests.get(video_url, stream=True)
 
@@ -298,8 +323,14 @@ class ScraperBot:
                     )
                     # post to discord the title, and the url of the video
                     title_payload = {"content": title}
-                    requests.post(test_webhook, data=title_payload)
-                    return
+
+                    if caller == "cli_interaction":
+                        requests.post(webhook, data=title_payload)
+                    else:
+                        # handle sending to the discord channel the command was called from
+                        await self.send_to_discord_channel(
+                            title_payload, None, interaction
+                        )
 
             except subprocess.TimeoutExpired:
                 logger.error("FFmpeg process timed out")
@@ -317,10 +348,16 @@ class ScraperBot:
                 for chunk in video_response.iter_content(chunk_size=1024):
                     video_file.write(chunk)
 
-        # Send video to Discord or further processing
+        # Send video to Discord
         title_payload = {"content": title}
         files = {"file": open(video_filename, "rb")}
-        requests.post(test_webhook, files=files, data=title_payload)
+
+        if caller == "cli_interaction":
+            requests.post(webhook, files=files, data=title_payload)
+        else:
+            # handle sending to the discord channel the command was called from
+            await self.send_to_discord_channel(title_payload, files, interaction)
+
         files["file"].close()
         os.remove(video_filename)
 
@@ -328,7 +365,7 @@ class ScraperBot:
     def run_cli(self):
         subreddit = self.getSubredditCLI()
         num_posts = int(input("How many posts would you like to scrape? "))
-        self.get_top_posts(subreddit, num_posts)
+        self.get_top_posts(subreddit, num_posts, caller="cli_interaction")
 
     # Run the Discord bot
     def run_discord(self):

@@ -1,3 +1,5 @@
+webhook = "https://discord.com/api/webhooks/1258218867633819649/XcUFGh134wRamWodp0m8FVDnZA5shCs10VTnMFxhrA93f6c-6G-sXdz8iE9fogG867Et"
+
 test_memes_webhook = https://discord.com/api/webhooks/1257428323525591162/5524Jri5RRLfaU8y7XBr1cLl5zqHLvO_XaHF9pU7FaY0gvw0LB-00a3JzmBsq2jqKBwF
 
 production_memes_webhook = https://discord.com/api/webhooks/1256729712558997636/3kJ-pRBISUkorNMiDKFlG3sDO0K6aOfc-iFzjtPGH3HpIChZOeCUE4B-sh9oJgwao74I
