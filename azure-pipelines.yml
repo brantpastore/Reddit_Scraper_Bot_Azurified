@@ -26,6 +26,7 @@ stages:
   - job: Build
     displayName: Build
     pool:
+      name: SelfHosted-DevOps
       vmImage: $(vmImageName)
     steps:
     - task: Docker@2
