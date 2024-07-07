@@ -10,25 +10,6 @@ def main():
     bot = core_logic.ScraperBot()
 
     # Ask the user for the mode they want to run the bot in
-    #bot.run_discord()
-    while True:
-        mode = input(
-            "Enter 'cli' for CLI mode or 'discord' for Discord bot mode: "
-        ).lower()
-
-        if mode == "cli":
-            bot.run_cli()
-            break
-        elif mode == "discord":
-            bot.run_discord()
-            break
-        elif mode == "exit":
-            print("Exiting program.")
-            time.sleep(1)
-            break
-        else:
-            print("Invalid mode entered. Please try again.")
-
-
+    bot.run_discord()
 
 main()
