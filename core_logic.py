@@ -3,7 +3,8 @@
 # It uses Selenium to scrape posts from Reddit and sends the results to a Discord channel using webhooks.
 # The bot can be run in the CLI or as a Discord bot.
 from selenium import webdriver
-import chromedriver_autoinstaller
+# import chromedriver_autoinstaller
+
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -49,10 +50,13 @@ class ScraperBot:
         # set up selenium options for headless browsing
         options = Options()
         options.add_argument("--headless")
-        options.add_argument("--no-sandbox")
+        options.add_argument('--no-sandbox')
         options.add_argument(
             "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         )
+        
+        
+        # service = Service(chromedriver_autoinstaller.install())
         service = Service(ChromeDriverManager().install())
         self.driver = webdriver.Chrome(service=service, options=options)
 

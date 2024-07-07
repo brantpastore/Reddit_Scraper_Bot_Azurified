@@ -1,81 +1,40 @@
-# Python to Linux Web App on Azure
-# Build your Python project and deploy it to Azure as a Linux Web App.
-# Change python version to one thats appropriate for your application.
-# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+# Docker
+# Build and push an image to Azure Container Registry
+# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
 trigger:
 - main
 
-variables:
-  # Azure Resource Manager connection created during pipeline creation
-  azureServiceConnectionId: 'c3fafb5b-10fc-4f2e-8f6e-428f97cf294a'
+resources:
+- repo: self
 
-  # Web app name
-  webAppName: 'feashdiscordapp'
+variables:
+  # Container registry service connection established during pipeline creation
+  dockerRegistryServiceConnection: '17e8e420-4263-4e7a-923c-da63832b7321'
+  imageRepository: 'brantpastoreredditscraperbotazurified'
+  containerRegistry: 'feashbot.azurecr.io'
+  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
+  tag: '$(Build.BuildId)'
 
   # Agent VM image name
   vmImageName: 'ubuntu-latest'
 
-  # Environment name
-  environmentName: 'feashdiscordapp'
-
-  # Project root folder. Point to the folder containing manage.py file.
-  projectRoot: $(System.DefaultWorkingDirectory)
-
-  # Python version: 3.7
-  pythonVersion: '3.10.11'
-
 stages:
 - stage: Build
-  displayName: Build stage
+  displayName: Build and push stage
   jobs:
-  - job: BuildJob
+  - job: Build
+    displayName: Build
     pool:
       name: SelfHosted-DevOps
       vmImage: $(vmImageName)
     steps:
-     - task: Docker@2
-       displayName: Build an image
-       inputs:
-        repository: $(vmImageName)
-        command: build
-        Dockerfile: app/Dockerfile
-
-     - task: CmdLine@2
-       inputs:
-         script: |
-          apt-get -y update
-          displayName: "Update Image"
-
-
-     - task: CmdLine@2
-       inputs:
-         script: |
-          apt-get install -y python
-          displayName: "install python"
-        
-
-- stage: Deploy
-  displayName: 'Deploy Web App'
-  jobs:
-  - deployment: DeploymentJob
-    pool:
-      name: SelfHosted-DevOps
-      vmImage: $(vmImageName)
-    environment: $(environmentName)
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-
-          - task: Docker@2
-          - task: CmdLine@2
-          - task: CmdLine@2
-
-          - task: AzureWebApp@1
-            displayName: 'Deploy Azure Web App : feashdiscordapp'
-            inputs:
-              azureSubscription: $(azureServiceConnectionId)
-              appName: $(webAppName)
-              appType: webAppLinux
-              package: $(Pipeline.Workspace)/drop/$(Build.BuildId).zip
+    - task: Docker@2
+      displayName: Build and push an image to container registry
+      inputs:
+        command: buildAndPush
+        repository: $(imageRepository)
+        dockerfile: $(dockerfilePath)
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: |
+          $(tag)
