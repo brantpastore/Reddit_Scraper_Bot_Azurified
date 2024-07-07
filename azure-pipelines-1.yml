@@ -13,7 +13,7 @@ variables:
   dockerRegistryServiceConnection: 'dd3ba552-572a-46d9-a8a8-eba3a68b0ad8'
   imageRepository: 'ubuntu2204withchromedependencies'
   containerRegistry: 'feashbot.azurecr.io'
-  dockerfilePath: 'src/app/Dockerfile'
+  dockerfilePath: '$(Build.SourcesDirectory/Dockerfile)'
   tag: '$(Build.BuildId)'
 
   # Agent VM image name
