@@ -25,4 +25,3 @@ RUN mkdir /home/discordBot
 COPY cli_interface.py /home/discordBot
 COPY main.py /home/discordBot
 COPY core_logic.py /home/discordBot
-RUN python3 /home/discordBot/cli_interface.py
