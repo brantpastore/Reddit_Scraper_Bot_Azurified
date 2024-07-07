@@ -1,22 +1,19 @@
-# Docker
-# Build and push an image to Azure Container Registry
-# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
-
 trigger:
 - main
 
 resources:
 - repo: self
 
-variables:
-  # Container registry service connection established during pipeline creation
+variables: 
+  ## Add this under variables section in the pipeline
+  azureSubscription: 'Azure subscription 1 (2be1e3f8-aa3d-455e-9c7c-974ab3077163)'
+  appName: 'FeashBot'
+  containerRegistry: 'feashbot'
   dockerRegistryServiceConnection: '50d9a7a8-9798-4c3d-ae28-5feb51ce1de7'
   imageRepository: 'brantpastoreredditscraperbotazurified'
-  containerRegistry: 'feashbot.azurecr.io'
   dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
   tag: '$(Build.BuildId)'
 
-  # Agent VM image name
   vmImageName: 'ubuntu-latest'
 
 stages:
@@ -39,4 +36,11 @@ stages:
         tags: |
           $(tag)
 
-      
+
+    ## Add the below snippet at the end of your pipeline
+    - task: AzureWebAppContainer@1
+      displayName: 'Azure Web App on Container Deploy'
+      inputs:
+        azureSubscription: $(azureSubscription)
+        appName: $(appName)
+        containers: $(containerRegistry)/$(imageRepository):$(tag)
