@@ -13,7 +13,7 @@ from urllib.parse import urlparse, urljoin
 
 # Retrieve secrets from KV
 from azure.keyvault.secrets import SecretClient
-from azure.identity import ManagedIdentityCredential
+from azure.identity import ManagedIdentityCredential, DefaultAzureCredential
 
 import time
 import requests
