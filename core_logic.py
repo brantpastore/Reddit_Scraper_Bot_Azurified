@@ -47,7 +47,7 @@ else:
     vault_url = "https://FeashDiscordBot.vault.azure.net"
 
     # Create a secret client
-    credential = ManagedIdentityCredential()
+    credential = DefaultAzureCredential() #ManagedIdentityCredential()
     client = SecretClient(vault_url=vault_url, credential=credential)
 
     # Retrieve secrets from Azure Key Vault
