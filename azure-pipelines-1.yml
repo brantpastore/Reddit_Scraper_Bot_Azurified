@@ -54,17 +54,17 @@ stages:
         azureSubscription: $(azureSubscription) # string. Alias: ConnectedServiceName. Required. Azure subscription. 
         appName: $(appName) # string. Required. App Service name. 
         resourceGroupName: $(rg)
-        generalSettings: |
-          [
-            {
-              "name": "AcrUseManagedIdentityCreds",
-              "value": true
-            },
-            {
-              "name": "AcrUserManagedIdentityID",
-              "value": "0ffad0f2-ece6-4d55-9e12-8f2745e2db96"
-            }
-          ]
+        # generalSettings: |
+        #   [
+        #     {
+        #       "name": "AcrUseManagedIdentityCreds",
+        #       "value": true
+        #     },
+        #     {
+        #       "name": "AcrUserManagedIdentityID",
+        #       "value": "0ffad0f2-ece6-4d55-9e12-8f2745e2db96"
+        #     }
+        #   ]
         appSettings: |
           [
             {
