@@ -39,7 +39,7 @@ if os.getenv("CHECK_ENV"):
     # Discord token and webhook URLs from local environment variables
     DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
     webhook = os.getenv("WEBHOOK")
-
+    
     print("DISCORD_TOKEN FROM CLI:", DISCORD_TOKEN)
     print("WEBHOOK FROM CLI:", webhook)
 else:
@@ -49,22 +49,23 @@ else:
     vault_url = "https://FeashDiscordBot.vault.azure.net"
 
     # Create a secret client
-    logger = logging.getLogger("azure.identity")
+    logger = logging.getLogger('azure.identity')
     logger.setLevel(logging.INFO)
 
     handler = logging.StreamHandler(stream=sys.stdout)
-    formatter = logging.Formatter("[%(levelname)s %(name)s] %(message)s")
+    formatter = logging.Formatter('[%(levelname)s %(name)s] %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
-    credential = DefaultAzureCredential()  # ManagedIdentityCredential()
+    credential = DefaultAzureCredential() #ManagedIdentityCredential()
     client = SecretClient(vault_url=vault_url, credential=credential)
 
     # Retrieve secrets from Azure Key Vault
     DISCORD_TOKEN = client.get_secret("DISCORD-TOKEN").value
     webhook = client.get_secret("WEBHOOK").value
-
+    
     print("DISCORD_TOKEN:", DISCORD_TOKEN)
     print("WEBHOOK:", webhook)
+
 
 
 # Function to sanitize the filename of the image or video scraped from Reddit
@@ -173,23 +174,19 @@ class ScraperBot:
 
     # Navigate to the subreddit URL
     def go_to_subreddit(self, subreddit):
-        try:
-            self.driver.get(subreddit)
-            time.sleep(3)
-        except Exception as e:
-            print(f"Error navigating to subreddit: {e}")
+        self.driver.get(subreddit)
+        time.sleep(3)
 
     # Scroll down the page to load more posts
     def scroll_down(self):
         try:
             print("Scrolling down...")
-            self.driver.execute_script(
-                "window.scrollTo(0, document.body.scrollHeight);"
-            )
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             print("Waiting for posts to load...")
             time.sleep(2)
         except Exception as e:
             print(f"Error scrolling down: {e}")
+        
 
     # Select the number of posts to scrape from the subreddit
     def select_posts(self, num_posts):
