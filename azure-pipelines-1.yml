@@ -13,7 +13,7 @@ variables:
   imageRepository: 'brantpastoreredditscraperbotazurified'
   dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
   tag: '$(Build.BuildId)'
-  DOCKER_SERVER_URL: 'feashbot.azurecr.io'
+  DOCKER_S: 'feashbot.azurecr.io'
   DOCKER_SERVER_USERNAME: 'feashbot'
 
   vmImageName: 'ubuntu-latest'
@@ -62,4 +62,4 @@ stages:
               "slotSetting": false
             },
           ]
-          - script: echo "Server URL $(DOCKER_SERVER_URL) ServerUser: $(DOCKER_SERVER_USERNAME)"
+          - script: echo "ServerURL: $(DOCKER_S) ServerUser: $(DOCKER_SERVER_USERNAME) Sec: $(ACR-PASSWORD)"
