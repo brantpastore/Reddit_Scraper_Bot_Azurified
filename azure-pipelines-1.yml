@@ -57,7 +57,7 @@ stages:
         generalSettings: |
           [
             {
-              acrUseMangedIdentityCreds: "true"
+              "acrUseMangedIdentityCreds": "true"
             }
           ]
         appSettings: |
