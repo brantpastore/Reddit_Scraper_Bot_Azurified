@@ -55,29 +55,29 @@ stages:
         appName: $(appName) # string. Required. App Service name. 
         resourceGroupName: $(rg)
         generalSettings: |
-        [
-          {
-            "acrUseMangedIdentityCreds": "true"
-          }
-        ]
+          [
+            {
+              acrUseMangedIdentityCreds: "true"
+            }
+          ]
         appSettings: |
-        [
-          {
-            "name": "DOCKER_REGISTRY_SERVER_URL",
-            "value": "$(DOCKER_S)",
-            "slotSetting": false
-          },
-          {
-            "name": "DOCKER_REGISTRY_SERVER_USERNAME",
-            "value": "$(DOCKER_U)", 
-            "slotSetting": false
-          },
-          {
-             "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
+          [
+            {
+              "name": "DOCKER_REGISTRY_SERVER_URL",
+              "value": "$(DOCKER_S)",
+              "slotSetting": false
+            },
+            {
+              "name": "DOCKER_REGISTRY_SERVER_USERNAME",
+              "value": "$(DOCKER_U)", 
+              "slotSetting": false
+            },
+            {
+              "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
               "value": "$(ACR-PASSWORD)",
               "slotSetting": false
-          }
-        ]
+            }
+          ]
 
 
 
