@@ -8,6 +8,7 @@ variables:
   ## Add this under variables section in the pipeline
   azureSubscription: 'Azure subscription 1 (2be1e3f8-aa3d-455e-9c7c-974ab3077163)'
   appName: 'FeashBot'
+  rg: 'DiscordBot'
   containerRegistry: 'feashbot'
   dockerRegistryServiceConnection: '965bf512-d3ec-48a7-8a7b-e2079307c667'
   imageRepository: 'brantpastoreredditscraperbotazurified'
@@ -37,7 +38,6 @@ stages:
         tags: |
           $(tag)
 
-
     ## Retrieve Container registry password from key vault
     - task: AzureKeyVault@2
       inputs:
@@ -46,8 +46,14 @@ stages:
         SecretsFilter: 'ACR-PASSWORD'
         RunAsPreJob: false
 
+    # Set app service settings
     - task: AzureAppServiceSettings@1
-
+      inputs:
+        azureSubscription: $(azureSubscription) # string. Alias: ConnectedServiceName. Required. Azure subscription. 
+        appName: $(appName) # string. Required. App Service name. 
+        resourceGroupName: $(rg)
+        appSettings: |
+        generalSettings: '-Test "value"'
 
     ## Deploy container and set App Settings
     - task: AzureWebAppContainer@1
@@ -56,7 +62,3 @@ stages:
         azureSubscription: $(azureSubscription)
         appName: $(appName)
         containers: $(containerRegistry)/$(imageRepository):$(tag)
-        appSettings: |
-          [
-            { "name": "Appsettings.DockerServerURL", "value": "feashbot.azurecr.io", "slotSetting": false }, 
-          ]
