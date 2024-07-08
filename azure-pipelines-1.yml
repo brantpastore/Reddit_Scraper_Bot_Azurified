@@ -55,21 +55,5 @@ stages:
         appName: $(appName)
         containers: $(containerRegistry)/$(imageRepository):$(tag)
         appSettings: |
-          [
-            {
-              "name": "DOCKER_REGISTRY_SERVER_URL",
-              "value": "$(DOCKER_S)", 
-              "slotSetting": false
-            },
-            {
-              "name": "DOCKER-ACR",
-              "value": "$(ACR-PASSWORD)", 
-              "slotSetting": false
-            },
-            {
-              "name": "DOCKER-SERVER-USER",
-              "value": "$(DOCKER_SERVER_USERNAME)", 
-              "slotSetting": false
-            },
-          ]
+          -DOCKER_REGISTRY_URL: $(DOCKER_S) 
           - script: echo "ServerURL: $(DOCKER_S) ServerUser: $(DOCKER_SERVER_USERNAME) Sec: $(ACR-PASSWORD)"
