@@ -74,7 +74,7 @@ stages:
           
           
           
-    - script: echo '$(containerRegistry)/$(imageRepository):$(tag)'
+    - script: echo '$(DOCKER_S)/$(imageRepository):$(tag)'
     
     ## Deploy container
     - task: AzureWebAppContainer@1
@@ -82,4 +82,4 @@ stages:
       inputs:
         azureSubscription: $(azureSubscription)
         appName: $(appName)
-        containers: $(containerRegistry)/$(imageRepository):$(tag)
+        containers: $(DOCKER_S)/$(imageRepository):$(tag)
