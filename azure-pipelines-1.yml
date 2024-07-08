@@ -46,8 +46,18 @@ stages:
         KeyVaultName: 'FeashDiscordBot'
         SecretsFilter: 'ACR-PASSWORD'
         RunAsPreJob: false
+ 
+          
+    ## Deploy container
+    - task: AzureWebAppContainer@1
+      displayName: 'Azure Web App on Container Deploy'
+      inputs:
+        azureSubscription: $(azureSubscription)
+        appName: $(appName)
+        containers: $(DOCKER_S)/$(imageRepository):$(tag)
+    
 
-    # Set app service settings
+        # Set app service settings
     - task: AzureAppServiceSettings@1
       inputs:
         azureSubscription: $(azureSubscription) # string. Alias: ConnectedServiceName. Required. Azure subscription. 
@@ -71,15 +81,9 @@ stages:
               "slotSetting": false
             }
           ]
-          
-          
-          
-    - script: echo '$(DOCKER_S)/$(imageRepository):$(tag)'
-    
-    ## Deploy container
-    - task: AzureWebAppContainer@1
-      displayName: 'Azure Web App on Container Deploy'
-      inputs:
-        azureSubscription: $(azureSubscription)
-        appName: $(appName)
-        containers: $(DOCKER_S)/$(imageRepository):$(tag)
+          generalSettings: |
+          [
+            {
+              "acrUseMaangedIdentityCreds": "true"
+            }
+          ]
