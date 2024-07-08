@@ -53,7 +53,13 @@ stages:
         appName: $(appName) # string. Required. App Service name. 
         resourceGroupName: $(rg)
         appSettings: |
-          -Test: "value"
+         [
+            {
+              "name": "Test",
+              "value": "$(DOCKER_S)", 
+              "slotSetting": false
+            },
+          ]
 
     ## Deploy container and set App Settings
     - task: AzureWebAppContainer@1
