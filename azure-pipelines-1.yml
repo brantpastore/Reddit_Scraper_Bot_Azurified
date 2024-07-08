@@ -55,5 +55,5 @@ stages:
         containers: $(containerRegistry)/$(imageRepository):$(tag)
         appSettings: |
           [
-            { "name": "Docker:ServerURL", "value": "feashbot.azurecr.io", "slotSetting": false },
+            { "name": "Appsettings.DockerServerURL", "value": "feashbot.azurecr.io", "slotSetting": false },
           ]
