@@ -24,8 +24,8 @@ import subprocess
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Check if running in a web server environment
-if os.getenv("AZURE_EXTENSION_DIR") is None:
+# check if being ran by a docker container
+if os.getenv("DOCKER_CONTAINER"):
     # Running in a CLI or local environment
 
     # Load environment variables from a .env file
