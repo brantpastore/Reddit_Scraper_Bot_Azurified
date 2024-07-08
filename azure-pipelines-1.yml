@@ -48,6 +48,39 @@ stages:
         RunAsPreJob: false
  
           
+    # Set app service settings
+    - task: AzureAppServiceSettings@1
+      inputs:
+        azureSubscription: $(azureSubscription) # string. Alias: ConnectedServiceName. Required. Azure subscription. 
+        appName: $(appName) # string. Required. App Service name. 
+        resourceGroupName: $(rg)
+        generalSettings: |
+        [
+          {
+            "acrUseMangedIdentityCreds": "true"
+          }
+        ]
+        appSettings: |
+        [
+          {
+            "name": "DOCKER_REGISTRY_SERVER_URL",
+            "value": "$(DOCKER_S)",
+            "slotSetting": false
+          },
+          {
+            "name": "DOCKER_REGISTRY_SERVER_USERNAME",
+            "value": "$(DOCKER_U)", 
+            "slotSetting": false
+          },
+          {
+             "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
+              "value": "$(ACR-PASSWORD)",
+              "slotSetting": false
+          }
+        ]
+
+
+
     ## Deploy container
     - task: AzureWebAppContainer@1
       displayName: 'Azure Web App on Container Deploy'
@@ -56,34 +89,3 @@ stages:
         appName: $(appName)
         containers: $(DOCKER_S)/$(imageRepository):$(tag)
     
-
-        # Set app service settings
-    - task: AzureAppServiceSettings@1
-      inputs:
-        azureSubscription: $(azureSubscription) # string. Alias: ConnectedServiceName. Required. Azure subscription. 
-        appName: $(appName) # string. Required. App Service name. 
-        resourceGroupName: $(rg)
-        appSettings: |
-          [
-            {
-             "name": "DOCKER_REGISTRY_SERVER_URL",
-              "value": "$(DOCKER_S)",
-              "slotSetting": false
-            },
-            {
-             "name": "DOCKER_REGISTRY_SERVER_USERNAME",
-              "value": "$(DOCKER_U)",
-              "slotSetting": false
-            },
-            {
-             "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
-              "value": "$(ACR-PASSWORD)",
-              "slotSetting": false
-            }
-          ]
-          generalSettings: |
-          [
-            {
-              "acrUseMaangedIdentityCreds": "true"
-            }
-          ]
