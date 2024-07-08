@@ -14,7 +14,6 @@ variables:
   dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
   tag: '$(Build.BuildId)'
   DOCKER_S: 'feashbot.azurecr.io'
-  DOCKER_SERVER_USERNAME: 'feashbot'
 
   vmImageName: 'ubuntu-latest'
 
@@ -57,4 +56,4 @@ stages:
         appSettings: |
           -TEST "Testval"
           -DOCKER_REGISTRY_SERVER_URL "$(DOCKER_S)"
-          -DOCKER_REGISTRY_SERVER_USERNAME "$(DOCKER_SERVER_USERNAME)"
+          -DOCKER_REGISTRY_SERVER_USERNAME "feashbot"
