@@ -67,7 +67,7 @@ stages:
             },
             {
               "name": "DOCKER_REGISTRY_SERVER_PASSWORD",
-              "value": "$(ACR-PASSWORD)",
+              "value": "$(Key)",
               "slotSetting": false
             },
           ]
