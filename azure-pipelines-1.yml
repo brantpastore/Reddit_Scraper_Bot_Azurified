@@ -72,7 +72,12 @@ stages:
             }
           ]
 
-    ## Deploy container and set App Settings
+    - task: Bash@3
+      inputs:
+        targetType: 'inline'
+        script: echo '$(containerRegistry)/$(imageRepository):$(tag)'
+    
+    ## Deploy container
     - task: AzureWebAppContainer@1
       displayName: 'Azure Web App on Container Deploy'
       inputs:
