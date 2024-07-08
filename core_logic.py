@@ -25,7 +25,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Check if running in a web server environment
-if os.getenv("SERVER_SOFTWARE") is not None:
+if os.getenv("WEBSITE_SITE_NAME"):
     # Running in a web server environment (e.g., Azure App Service, Heroku)
 
     # Azure Key Vault URL
