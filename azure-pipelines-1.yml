@@ -54,6 +54,6 @@ stages:
         appName: $(appName)
         containers: $(containerRegistry)/$(imageRepository):$(tag)
         appSettings: |
-          -TEST "Testval"
-          -DOCKER_REGISTRY_SERVER_URL "feashbot.azurecr.io"
-          -DOCKER_REGISTRY_SERVER_USERNAME "feashbot"
+          [
+            { "name": "Docker:ServerURL", "value": "feashbot.azurecr.io", "slotSetting": false },
+          ]
