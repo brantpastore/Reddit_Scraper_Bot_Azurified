@@ -59,6 +59,6 @@ stages:
             {
               "name": "DOCKER_REGISTRY_SERVER_URL",
               "value": "$(DOCKER_SERVER_URL)", 
-              "slotSetting": false
+              "slotSetting": true
             },
           ]
