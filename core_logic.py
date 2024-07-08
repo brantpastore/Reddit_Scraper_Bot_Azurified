@@ -25,7 +25,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Check if running in a web server environment
-if os.getenv("WEBSITE_SITE_NAME"):
+if os.getenv("AZURE_EXTENSION_DIR") is None:
+    # Running in a CLI or local environment
+
+    # Load environment variables from a .env file
+    load_dotenv()
+
+    # Discord token and webhook URLs from local environment variables
+    DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+    webhook = os.getenv("WEBHOOK")
+    
+    print("DISCORD_TOKEN FROM CLI:", DISCORD_TOKEN)
+    print("WEBHOOK FROM CLI:", webhook)
+else:
     # Running in a web server environment (e.g., Azure App Service, Heroku)
 
     # Azure Key Vault URL
@@ -42,18 +54,6 @@ if os.getenv("WEBSITE_SITE_NAME"):
     print("DISCORD_TOKEN:", DISCORD_TOKEN)
     print("WEBHOOK:", webhook)
 
-else:
-    # Running in a CLI or local environment
-
-    # Load environment variables from a .env file
-    load_dotenv()
-
-    # Discord token and webhook URLs from local environment variables
-    DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-    webhook = os.getenv("WEBHOOK")
-    
-    print("DISCORD_TOKEN FROM CLI:", DISCORD_TOKEN)
-    print("WEBHOOK FROM CLI:", webhook)
 
 
 # Function to sanitize the filename of the image or video scraped from Reddit
