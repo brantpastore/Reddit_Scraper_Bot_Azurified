@@ -14,7 +14,7 @@ variables:
   imageRepository: 'brantpastoreredditscraperbotazurified'
   dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
   tag: '$(Build.BuildId)'
-  DOCKER_S: 'feashbot.azurecr.io'
+  DOCKER_S: 'https://feashbot.azurecr.io'
   DOCKER_U: 'feashbot'
 
   vmImageName: 'ubuntu-latest'
