@@ -10,8 +10,11 @@ from webdriver_manager.chrome import ChromeDriverManager
 from discord import app_commands
 from dotenv import load_dotenv
 from urllib.parse import urlparse, urljoin
-from azure.identity import DefaultAzureCredential
+
+# Retrieve secrets from KV
 from azure.keyvault.secrets import SecretClient
+from azure.identity import ManagedIdentityCredential
+
 import time
 import requests
 import re
@@ -44,7 +47,7 @@ else:
     vault_url = "https://FeashDiscordBot.vault.azure.net"
 
     # Create a secret client
-    credential = DefaultAzureCredential()
+    credential = ManagedIdentityCredential()
     client = SecretClient(vault_url=vault_url, credential=credential)
 
     # Retrieve secrets from Azure Key Vault
