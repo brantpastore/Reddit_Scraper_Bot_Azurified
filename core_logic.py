@@ -41,7 +41,7 @@ else:
     # Running in a web server environment (e.g., Azure App Service, Heroku)
 
     # Azure Key Vault URL
-    vault_url = "https://FeashDiscordBot.vault.azure.net/"
+    vault_url = "https://FeashDiscordBot.vault.azure.net"
 
     # Create a secret client
     credential = DefaultAzureCredential()
