@@ -15,6 +15,7 @@ variables:
   dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
   tag: '$(Build.BuildId)'
   DOCKER_S: 'feashbot.azurecr.io'
+  DOCKER_U: ''
 
   vmImageName: 'ubuntu-latest'
 
@@ -54,8 +55,18 @@ stages:
         resourceGroupName: $(rg)
         appSettings: |
           {
-             "name": "Test",
+             "name": "DOCKER_REGISTRY_SERVER_URL",
               "value": "$(DOCKER_S)",
+              "slotSetting": false
+          },
+          {
+              "name": "DOCKER_REGISTRY_USER",
+              "value": "$(DOCKER_U)",
+              "slotSetting": false
+          },
+          {
+              "name": "DOCKER_REGISTRY_SECRET",
+              "value": "$(ACR-PASSWORD)",
               "slotSetting": false
           }
 
