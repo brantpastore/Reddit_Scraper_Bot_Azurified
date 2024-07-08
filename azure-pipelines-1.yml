@@ -55,5 +55,5 @@ stages:
         appName: $(appName)
         containers: $(containerRegistry)/$(imageRepository):$(tag)
         appSettings: |
-          -DOCKER_REGISTRY_URL: $(DOCKER_S) 
-          - script: echo "ServerURL: $(DOCKER_S) ServerUser: $(DOCKER_SERVER_USERNAME) Sec: $(ACR-PASSWORD)"
+          -DOCKER_REGISTRY_SERVER_URL: $(DOCKER_S) 
+          - script: echo "ServerURL: $(DOCKER_S)"
