@@ -59,6 +59,7 @@ stages:
             {
               "name": "DOCKER_REGISTRY_SERVER_URL",
               "value": "$(DOCKER_SERVER_URL)", 
-              "slotSetting": true
+              "slotSetting": false
             },
           ]
+          - script: echo "Server URL $(DOCKER_SERVER_URL) ServerUser: $(DOCKER_SERVER_USERNAME)"
