@@ -14,6 +14,8 @@ from urllib.parse import urlparse, urljoin
 # Retrieve secrets from KV
 from azure.keyvault.secrets import SecretClient
 from azure.identity import ManagedIdentityCredential, DefaultAzureCredential
+import logging
+import sys
 
 import time
 import requests
@@ -47,6 +49,13 @@ else:
     vault_url = "https://FeashDiscordBot.vault.azure.net"
 
     # Create a secret client
+    logger = logging.getLogger('azure.identity')
+    logger.setLevel(logging.INFO)
+
+    handler = logging.StreamHandler(stream=sys.stdout)
+    formatter = logging.Formatter('[%(levelname)s %(name)s] %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
     credential = DefaultAzureCredential() #ManagedIdentityCredential()
     client = SecretClient(vault_url=vault_url, credential=credential)
 
