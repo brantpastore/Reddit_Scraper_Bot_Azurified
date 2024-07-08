@@ -9,7 +9,7 @@ variables:
   azureSubscription: 'Azure subscription 1 (2be1e3f8-aa3d-455e-9c7c-974ab3077163)'
   appName: 'FeashBot'
   containerRegistry: 'feashbot'
-  dockerRegistryServiceConnection: '50d9a7a8-9798-4c3d-ae28-5feb51ce1de7'
+  dockerRegistryServiceConnection: '965bf512-d3ec-48a7-8a7b-e2079307c667'
   imageRepository: 'brantpastoreredditscraperbotazurified'
   dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
   tag: '$(Build.BuildId)'
@@ -42,7 +42,7 @@ stages:
     ## Retrieve Container registry password from key vault
     - task: AzureKeyVault@2
       inputs:
-        azureSubscription: 'Azure subscription 1 (2be1e3f8-aa3d-455e-9c7c-974ab3077163)'
+        azureSubscription: $(azureSubscription)
         KeyVaultName: 'FeashDiscordBot'
         SecretsFilter: 'ACR-PASSWORD'
         RunAsPreJob: false
