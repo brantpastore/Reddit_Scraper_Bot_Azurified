@@ -215,7 +215,7 @@ class ScraperBot:
                     self.scroll_down()
 
             return posts
-        except:
+        except Exception as e:
             print(f"Error: {e}")
 
     async def send_to_discord_channel(self, title_payload, files, interaction):
