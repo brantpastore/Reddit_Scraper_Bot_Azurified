@@ -25,7 +25,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # check if being ran by a docker container
-if os.getenv("DOCKER_CONTAINER"):
+if os.getenv("CHECK_ENV"):
     # Running in a CLI or local environment
 
     # Load environment variables from a .env file
