@@ -20,6 +20,8 @@ RUN apt --fix-broken install
 # Install chrome
 RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 RUN dpkg -i google-chrome*.deb
+# Install azcli dependencies
+RUN curl -fsSL https://aka.ms/install-azd.sh | bash
 # Create a directory, copy over our python program, and run the CLI Interface of the program.
 RUN mkdir /home/discordBot
 COPY cli_interface.py /home/discordBot
