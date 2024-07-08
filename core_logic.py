@@ -184,37 +184,39 @@ class ScraperBot:
 
     # Select the number of posts to scrape from the subreddit
     def select_posts(self, num_posts):
+        try:
+            posts = []  # List to store post URLs
 
-        posts = []  # List to store post URLs
-
-        while (
-            len(posts) < num_posts
-        ):  # Keep scrolling until we have the desired number of posts
-
-            article_elements = self.driver.find_elements(By.TAG_NAME, "article")
-            print(f"Found {len(article_elements)} articles so far.")
-
-            for post in article_elements:
-
-                if len(posts) >= num_posts:  # If we have enough posts,
-                    break
-                try:  # else, try to find the post link
-                    link = post.find_element(By.CSS_SELECTOR, 'a[href^="/r/"]')
-                    post_url = link.get_attribute("href")
-                    if (
-                        post_url not in posts
-                    ):  # If the post is not already in the list, add it
-                        posts.append(post_url)
-                        print(f"Post {len(posts)}: {post_url}")
-                except Exception as e:
-                    print(f"Error finding post link: {e}")
-
-            if (
+            while (
                 len(posts) < num_posts
-            ):  # If we still don't have enough posts, scroll down
-                self.scroll_down()
+            ):  # Keep scrolling until we have the desired number of posts
 
-        return posts
+                article_elements = self.driver.find_elements(By.TAG_NAME, "article")
+                print(f"Found {len(article_elements)} articles so far.")
+
+                for post in article_elements:
+
+                    if len(posts) >= num_posts:  # If we have enough posts,
+                        break
+                    try:  # else, try to find the post link
+                        link = post.find_element(By.CSS_SELECTOR, 'a[href^="/r/"]')
+                        post_url = link.get_attribute("href")
+                        if (
+                            post_url not in posts
+                        ):  # If the post is not already in the list, add it
+                            posts.append(post_url)
+                            print(f"Post {len(posts)}: {post_url}")
+                    except Exception as e:
+                        print(f"Error finding post link: {e}")
+
+                if (
+                    len(posts) < num_posts
+                ):  # If we still don't have enough posts, scroll down
+                    self.scroll_down()
+
+            return posts
+        except:
+            print(f"Error: {e}")
 
     async def send_to_discord_channel(self, title_payload, files, interaction):
         # check the channel the command was called from,
