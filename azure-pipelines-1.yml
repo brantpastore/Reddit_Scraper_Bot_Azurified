@@ -54,21 +54,16 @@ stages:
         appName: $(appName) # string. Required. App Service name. 
         resourceGroupName: $(rg)
         appSettings: |
-          {
-             "name": "DOCKER_REGISTRY_SERVER_URL",
-              "value": "$(DOCKER_S)",
-              "slotSetting": false
-          },
-          {
-              "name": "DOCKER_REGISTRY_USER",
-              "value": "$(DOCKER_U)",
-              "slotSetting": false
-          },
-          {
-              "name": "DOCKER_REGISTRY_SECRET",
-              "value": "$(ACR-PASSWORD)",
-              "slotSetting": false
-          }
+          - name: DOCKER_REGISTRY_SERVER_URL
+            value: $(DOCKER_S)
+            slotSetting: true
+          - name: DOCKER_REGISTRY_USER
+            value: $(DOCKER_U)
+            slotSetting: false
+          - name: DOCKER_REGISTRY_SECRET
+            value: $(ACR-PASSWORD)
+            slotSetting: false
+
 
     ## Deploy container and set App Settings
     - task: AzureWebAppContainer@1
