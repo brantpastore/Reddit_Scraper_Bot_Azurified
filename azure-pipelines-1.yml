@@ -55,7 +55,7 @@ stages:
         appName: $(appName)
         containers: $(containerRegistry)/$(imageRepository):$(tag)
         appSettings: |
-          -TEST: "Testval"
+          -TEST "Testval"
           # -DOCKER_REGISTRY_SERVER_URL: "$(DOCKER_S)"
           # -DOCKER_REGISTRY_SERVER_USERNAME: "$(DOCKER_SERVER_USERNAME)"
           # -DOCKER_REGISTRY_SERVER_PASSWORD: "$(ACR-PASSWORD)"
