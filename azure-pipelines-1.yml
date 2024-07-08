@@ -61,5 +61,15 @@ stages:
               "value": "$(DOCKER_SERVER_URL)", 
               "slotSetting": false
             },
+            {
+              "name": "DOCKER-ACR",
+              "value": "$(ACR-PASSWORD)", 
+              "slotSetting": false
+            },
+            {
+              "name": "DOCKER-SERVER-USER",
+              "value": "$(DOCKER_SERVER_USERNAME)", 
+              "slotSetting": false
+            },
           ]
           - script: echo "ServerURL: $(DOCKER_S) ServerUser: $(DOCKER_SERVER_USERNAME) Sec: $(ACR-PASSWORD)"
