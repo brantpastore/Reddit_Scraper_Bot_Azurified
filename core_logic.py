@@ -3,9 +3,6 @@
 # It uses Selenium to scrape posts from Reddit and sends the results to a Discord channel using webhooks.
 # The bot can be run in the CLI or as a Discord bot.
 from selenium import webdriver
-
-# import chromedriver_autoinstaller
-
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -21,11 +18,7 @@ import re
 import os
 import discord
 import logging
-import m3u8
 import subprocess
-import tempfile
-import ffmpeg
-
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -45,6 +38,9 @@ if os.getenv("SERVER_SOFTWARE") is not None:
     # Retrieve secrets from Azure Key Vault
     DISCORD_TOKEN = client.get_secret("DISCORD-TOKEN").value
     webhook = client.get_secret("WEBHOOK").value
+    
+    print("DISCORD_TOKEN:", DISCORD_TOKEN)
+    print("WEBHOOK:", webhook)
 
 else:
     # Running in a CLI or local environment
@@ -55,6 +51,9 @@ else:
     # Discord token and webhook URLs from local environment variables
     DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
     webhook = os.getenv("WEBHOOK")
+    
+    print("DISCORD_TOKEN FROM CLI:", DISCORD_TOKEN)
+    print("WEBHOOK FROM CLI:", webhook)
 
 
 # Function to sanitize the filename of the image or video scraped from Reddit
