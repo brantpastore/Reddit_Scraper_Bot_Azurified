@@ -37,4 +37,4 @@ RUN apt-get update \
     && chmod u+x ./entrypoint.sh
 # COPY sshd_config /etc/ssh/
 EXPOSE 2222
-ENTRYPOINT [ "./entrypoint.sh" ] 
+ENTRYPOINT [ "entrypoint.sh" ] 
