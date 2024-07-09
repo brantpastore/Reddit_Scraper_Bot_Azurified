@@ -28,6 +28,7 @@ COPY cli_interface.py /home/discordBot
 COPY main.py /home/discordBot
 COPY core_logic.py /home/discordBot
 COPY supervisord.conf /etc/supervisord.conf
+COPY supervisord.conf /etc/supervisor/conf.d
 
 # Install supervisor
 RUN apt-get install -y supervisor
