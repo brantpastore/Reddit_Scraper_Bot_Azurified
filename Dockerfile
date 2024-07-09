@@ -27,6 +27,11 @@ RUN mkdir /home/discordBot
 COPY cli_interface.py /home/discordBot
 COPY main.py /home/discordBot
 COPY core_logic.py /home/discordBot
+COPY supervisord.conf /etc/supervisord.conf
+
+# Install supervisor
+RUN apt-get install -y supervisor
+
 
 # Start and enable SSH
 RUN apt-get update \
@@ -39,4 +44,6 @@ RUN set -e \
 
 EXPOSE 2222
 
-RUN python3 /home/discordBot/cli_interface.py
+RUN tty: true
+# RUN python3 /home/discordBot/cli_interface.py
+ENTRYPOINT ["supervisord","-c","/etc/supervisord.conf"]
