@@ -27,14 +27,23 @@ RUN mkdir /home/discordBot
 COPY cli_interface.py /home/discordBot
 COPY main.py /home/discordBot
 COPY core_logic.py /home/discordBot
-COPY entrypoint.sh ./
+COPY supervisord.conf /etc/supervisord.conf
+COPY supervisord.conf /etc/supervisor/conf.d
+
+# Install supervisor
+RUN apt-get install -y supervisor
+
 
 # Start and enable SSH
 RUN apt-get update \
     && apt-get install -y --no-install-recommends dialog \
     && apt-get install -y --no-install-recommends openssh-server \
-    && echo "root:Docker!" | chpasswd \
-    && chmod u+x ./entrypoint.sh
-# COPY sshd_config /etc/ssh/
+    && echo "root:Docker!" | chpasswd 
+
+RUN set -e \
+    && service ssh start
+
 EXPOSE 2222
-ENTRYPOINT [ "./entrypoint.sh" ] 
+
+# RUN python3 /home/discordBot/cli_interface.py
+ENTRYPOINT ["supervisord","-c","/etc/supervisord.conf"]
