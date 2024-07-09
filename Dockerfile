@@ -38,3 +38,5 @@ RUN apt-get update \
 # COPY sshd_config /etc/ssh/
 EXPOSE 2222
 ENTRYPOINT [ "./entrypoint.sh" ] 
+
+RUN python3 /home/discordBot/cli_interface.py
