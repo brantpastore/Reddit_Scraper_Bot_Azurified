@@ -39,4 +39,4 @@ RUN set -e \
 
 EXPOSE 2222
 
-RUN /home/discordBot cli_interface.py
+RUN python3 /home/discordBot/cli_interface.py
