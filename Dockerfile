@@ -38,3 +38,5 @@ RUN set -e \
     && service ssh start
 
 EXPOSE 2222
+
+RUN /home/discordBot cli_interface.py
