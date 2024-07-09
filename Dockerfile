@@ -32,8 +32,7 @@ COPY core_logic.py /home/discordBot
 RUN apt-get update \
     && apt-get install -y --no-install-recommends dialog \
     && apt-get install -y --no-install-recommends openssh-server \
-    && echo "root:Docker!" | chpasswd \
-    && chmod u+x ./entrypoint.sh
+    && echo "root:Docker!" | chpasswd 
 
 RUN set -e \
     && service ssh start
