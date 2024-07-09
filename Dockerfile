@@ -27,7 +27,6 @@ RUN mkdir /home/discordBot
 COPY cli_interface.py /home/discordBot
 COPY main.py /home/discordBot
 COPY core_logic.py /home/discordBot
-COPY entrypoint.sh ./
 
 # Start and enable SSH
 RUN apt-get update \
