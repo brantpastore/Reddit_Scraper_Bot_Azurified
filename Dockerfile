@@ -35,6 +35,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends openssh-server \
     && echo "root:Docker!" | chpasswd \
     && chmod u+x ./entrypoint.sh
-# COPY sshd_config /etc/ssh/
+
+RUN set -e \
+    && service ssh start
+
 EXPOSE 2222
-# ENTRYPOINT [ "entrypoint.sh" ] 
