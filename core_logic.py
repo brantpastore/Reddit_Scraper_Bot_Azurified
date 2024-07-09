@@ -7,16 +7,15 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.common.exceptions import NoSuchElementException
 from discord import app_commands
 from dotenv import load_dotenv
 from urllib.parse import urlparse, urljoin
-
-# Retrieve secrets from KV
 from azure.keyvault.secrets import SecretClient
 from azure.identity import ManagedIdentityCredential, DefaultAzureCredential
 import logging
 import sys
-
+import asyncio
 import time
 import requests
 import re
@@ -38,10 +37,10 @@ if os.getenv("CHECK_ENV"):
 
     # Discord token and webhook URLs from local environment variables
     DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-    webhook = os.getenv("WEBHOOK")
+    WEBHOOK = os.getenv("WEBHOOK")
 
     print("DISCORD_TOKEN FROM CLI:", DISCORD_TOKEN)
-    print("WEBHOOK FROM CLI:", webhook)
+    print("WEBHOOK FROM CLI:", WEBHOOK)
 else:
     # Running in a web server environment (e.g., Azure App Service, Heroku)
 
@@ -61,10 +60,10 @@ else:
 
     # Retrieve secrets from Azure Key Vault
     DISCORD_TOKEN = client.get_secret("DISCORD-TOKEN").value
-    webhook = client.get_secret("WEBHOOK").value
+    WEBHOOK = client.get_secret("WEBHOOK").value
 
     print("DISCORD_TOKEN:", DISCORD_TOKEN)
-    print("WEBHOOK:", webhook)
+    print("WEBHOOK:", WEBHOOK)
 
 
 # Function to sanitize the filename of the image or video scraped from Reddit
@@ -105,9 +104,6 @@ class ScraperBot:
 
         self.setup_bot_commands()
 
-    async def on_ready(self):
-        await webhook.send("Bot is ready to receive commands!")
-
     def setup_bot_commands(self):
 
         @app_commands.describe(
@@ -143,13 +139,57 @@ class ScraperBot:
                 f"Available subreddits to scrape:\n{subreddit_list}"
             )
 
-        # Define the hello command for test purposes
-        @self.bot.event
-        async def on_message(message):
-            if message.content.startswith("/hello"):
-                await message.channel.send(
-                    "Hello!, I am a bot that scrapes posts from Reddit."
+        # Define the scrape_custom command
+        @self.tree.command(
+            name="scrape_custom", description="Scrape posts from a custom subreddit"
+        )
+        async def scrape_custom_command(
+            interaction: discord.Interaction, subreddit_name: str, num_posts: int = 1
+        ):
+            subreddit_url = f"https://www.reddit.com/r/{subreddit_name}/top/"
+            subreddit_exists = False
+
+            try:
+                self.driver.get(subreddit_url)
+                error_message_element = self.driver.find_element(By.CLASS_NAME, "text-24")
+                error_message = error_message_element.text.strip()
+                
+                print(f"Error message found: '{error_message}'")
+
+                if "community not found" in error_message.lower():
+                    subreddit_exists = False  # Subreddit does not exist
+                elif "is private" in error_message.lower():
+                    subreddit_exists = False  # Subreddit is private
+                elif "is banned" in error_message.lower():
+                    subreddit_exists = False  # Subreddit is banned
+                else:
+                    subreddit_exists = True  # Subreddit exists
+
+            except NoSuchElementException:
+                print("Error message element not found.")
+                subreddit_exists = True  # Assuming subreddit exists if error message element not found
+            except Exception as e:
+                subreddit_exists = False
+                print(f"Error checking subreddit existence: {e}")
+
+            if not subreddit_exists:
+                await interaction.response.send_message(
+                    "Invalid subreddit name. Community not found. Please provide a valid subreddit name."
                 )
+                return
+            try:
+                modal = self.driver.find_element(By.ID, "wrapper")
+                if modal.is_displayed():
+                    secondary_button = modal.find_element(By.NAME, "secondaryButton")
+                    if secondary_button:
+                        secondary_button.click()
+            except NoSuchElementException:
+                pass  # No NSFW modal found or handled
+
+            await interaction.response.send_message(
+                f"Starting to scrape {num_posts} posts from: {subreddit_url}"
+            )
+            await self.scrape_subreddit(interaction, subreddit_url, num_posts)
 
     # Scrapes a subreddit and sends the results to the Discord channel
     async def scrape_subreddit(self, interaction, subreddit_url, num_posts):
@@ -309,7 +349,7 @@ class ScraperBot:
         files = {"file": open(image_filename, "rb")}
 
         if caller == "cli_interaction":
-            requests.post(webhook, files=files, data=title_payload)
+            requests.post(WEBHOOK, files=files, data=title_payload)
         else:
             # handle sending to the discord channel the command was called from
             await self.send_to_discord_channel(title_payload, files, interaction)
@@ -371,7 +411,7 @@ class ScraperBot:
                     title_payload = {"content": title}
 
                     if caller == "cli_interaction":
-                        requests.post(webhook, data=title_payload)
+                        requests.post(WEBHOOK, data=title_payload)
                     else:
                         # handle sending to the discord channel the command was called from
                         await self.send_to_discord_channel(
@@ -399,7 +439,7 @@ class ScraperBot:
         files = {"file": open(video_filename, "rb")}
 
         if caller == "cli_interaction":
-            requests.post(webhook, files=files, data=title_payload)
+            requests.post(WEBHOOK, files=files, data=title_payload)
         else:
             # handle sending to the discord channel the command was called from
             await self.send_to_discord_channel(title_payload, files, interaction)
@@ -411,19 +451,39 @@ class ScraperBot:
     def run_cli(self):
         subreddit = self.getSubredditCLI()
         num_posts = int(input("How many posts would you like to scrape? "))
-        self.get_top_posts(subreddit, num_posts, caller="cli_interaction")
+
+        # Define an async function to run the CLI
+        async def cli_helper():
+            await self.get_top_posts(subreddit, num_posts, caller="cli_interaction")
+
+        # Run the async function
+        asyncio.run(cli_helper())
+
+    # async commands
+    async def sync_commands(self):
+        try:
+            synced = await self.tree.sync()
+            print(f"Synced {len(synced)} command(s)")
+        except Exception as e:
+            print(f"Failed to sync commands: {e}")
 
     # Run the Discord bot
     def run_discord(self):
+        # Define the on_ready event
         @self.bot.event
         async def on_ready():
-            try:  # Try to sync the commands
-                synced = await self.tree.sync()
-                print(f"Synced {len(synced)} command(s)")
-            except Exception as e:
-                print(f"Failed to sync commands: {e}")
+            await self.sync_commands()
             print(f"{self.bot.user} has connected to Discord!")
             print(f"Bot is active in {len(self.bot.guilds)} servers.")
             print("Ready to receive commands!")
+
+            # Send a call to the webhook that the bot is ready
+            try:
+                webhook_message = {
+                    "content": f"{self.bot.user} is ready to receive commands!"
+                }
+                requests.post(WEBHOOK, json=webhook_message)
+            except Exception as e:
+                print(f"Failed to send webhook message: {e}")
 
         self.bot.run(DISCORD_TOKEN)

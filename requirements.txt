@@ -8,3 +8,4 @@ ffmpeg-python
 chromedriver_autoinstaller
 azure-keyvault-secrets
 azure-identity
+asyncio
