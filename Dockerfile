@@ -44,6 +44,5 @@ RUN set -e \
 
 EXPOSE 2222
 
-RUN tty: true
 # RUN python3 /home/discordBot/cli_interface.py
 ENTRYPOINT ["supervisord","-c","/etc/supervisord.conf"]
