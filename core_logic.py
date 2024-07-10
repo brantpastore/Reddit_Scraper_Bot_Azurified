@@ -9,6 +9,7 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import NoSuchElementException
 from discord import app_commands
+from discord.ext import commands
 from dotenv import load_dotenv
 from urllib.parse import urlparse, urljoin
 from azure.keyvault.secrets import SecretClient
@@ -118,11 +119,17 @@ class ScraperBot:
         ):
             if subreddit_number in self.subreddits:
                 subreddit_url = self.subreddits[subreddit_number]
-                await interaction.response.send_message(
+
+                await interaction.response.defer()
+
+                await interaction.followup.send(
                     f"Starting to scrape {num_posts} posts from: {subreddit_url}"
                 )
+
                 await self.scrape_subreddit(interaction, subreddit_url, num_posts)
+
             else:
+
                 await interaction.response.send_message(
                     "Invalid subreddit number. Please choose a number between 1 and 5."
                 )
@@ -151,9 +158,11 @@ class ScraperBot:
 
             try:
                 self.driver.get(subreddit_url)
-                error_message_element = self.driver.find_element(By.CLASS_NAME, "text-24")
+                error_message_element = self.driver.find_element(
+                    By.CLASS_NAME, "text-24"
+                )
                 error_message = error_message_element.text.strip()
-                
+
                 print(f"Error message found: '{error_message}'")
 
                 if "community not found" in error_message.lower():
@@ -167,7 +176,9 @@ class ScraperBot:
 
             except NoSuchElementException:
                 print("Error message element not found.")
-                subreddit_exists = True  # Assuming subreddit exists if error message element not found
+                subreddit_exists = (
+                    True  # Assuming subreddit exists if error message element not found
+                )
             except Exception as e:
                 subreddit_exists = False
                 print(f"Error checking subreddit existence: {e}")
@@ -186,7 +197,9 @@ class ScraperBot:
             except NoSuchElementException:
                 pass  # No NSFW modal found or handled
 
-            await interaction.response.send_message(
+            await interaction.response.defer()  # Acknowledge interaction
+
+            await interaction.followup.send(
                 f"Starting to scrape {num_posts} posts from: {subreddit_url}"
             )
             await self.scrape_subreddit(interaction, subreddit_url, num_posts)
