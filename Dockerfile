@@ -36,3 +36,4 @@ RUN apt-get install -y supervisor
 # RUN python3 /home/discordBot/cli_interface.py
 
 ENTRYPOINT ["supervisord","-c","/etc/supervisord.conf"]
+
