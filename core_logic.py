@@ -255,17 +255,7 @@ class ScraperBot:
 
                 article_elements = self.driver.find_elements(By.TAG_NAME, "article")
                 print(f"Found {len(article_elements)} articles so far.")
-                
-                
-                # grab the entire html of the page
-                html = self.driver.page_source
-                
-                # print the html to the console
-                print(html)
-                
-                # break the loop
-                break
-
+            
                 for post in article_elements:
 
                     if len(posts) >= num_posts:  # If we have enough posts,
