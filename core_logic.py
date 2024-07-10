@@ -59,8 +59,8 @@ else:
     client = SecretClient(vault_url=vault_url, credential=credential)
 
     # Retrieve secrets from Azure Key Vault
-    DISCORD_TOKEN = client.get_secret("DISCORD-TOKEN").value
-    WEBHOOK = client.get_secret("WEBHOOK").value
+    DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+    WEBHOOK = os.getenv("WEBHOOK")
 
     print("DISCORD_TOKEN:", DISCORD_TOKEN)
     print("WEBHOOK:", WEBHOOK)
