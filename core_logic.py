@@ -9,6 +9,7 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.proxy import Proxy, ProxyType
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -113,11 +114,16 @@ class ScraperBot:
 
         options.add_argument(f"user-agent={random.choice(user_agents)}")
         
-        capabilities = webdriver.DesiredCapabilities.CHROME
-        proxy.add_to_capabilities(capabilities)
+        # Set up desired capabilities with proxy
+        capabilities = DesiredCapabilities.CHROME.copy()
+        capabilities['proxy'] = {
+            "proxyType": "MANUAL",
+            "httpProxy": selected_proxy,
+            "sslProxy": selected_proxy,
+        }
         
         # Initialize the undetected Chrome driver
-        self.driver = uc.Chrome(options=options)
+        self.driver = uc.Chrome(options=options, desired_capabilities=capabilities)
 
         # Apply Selenium Stealth settings
         stealth(self.driver,
