@@ -9,6 +9,8 @@ chromedriver_autoinstaller
 azure-keyvault-secrets
 azure-identity
 asyncio
-undetected_chromedriver
+undetected-chromedriver
 setuptools
 asyncpraw
+selenium-stealth
+praw
