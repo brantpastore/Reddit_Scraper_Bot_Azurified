@@ -80,6 +80,23 @@ class ScraperBot:
     post_urls = {}  # Dictionary to store post URLs
 
     def __init__(self):
+        
+        
+        # Fetch proxies
+        http_proxies_response = requests.get('https://api.proxyscrape.com/?request=getproxies&proxytype=http&timeout=10000&country=all&ssl=all&anonymity=all')
+        http_proxies = http_proxies_response.text.split('\n')
+        https_proxies_response = requests.get('https://api.proxyscrape.com/?request=getproxies&proxytype=https&timeout=10000&country=all&ssl=all&anonymity=all')
+        https_proxies = https_proxies_response.text.split('\n')
+
+        # Select a proxy
+        selected_proxy = http_proxies[0].strip()
+
+        # Set up proxy
+        proxy = Proxy()
+        proxy.proxy_type = ProxyType.MANUAL
+        proxy.http_proxy = selected_proxy
+        proxy.ssl_proxy = selected_proxy
+        
         # original scraperbot code
         # set up selenium options for headless browsing
         options = uc.ChromeOptions()
@@ -87,10 +104,18 @@ class ScraperBot:
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_argument(
-            "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        )
+        options.add_argument("--disable-gpu")
+        options.add_argument("--disable-software-rasterizer")
+        user_agents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
+        ]
 
+        options.add_argument(f"user-agent={random.choice(user_agents)}")
+        
+        capabilities = webdriver.DesiredCapabilities.CHROME
+        proxy.add_to_capabilities(capabilities)
+        
         # Initialize the undetected Chrome driver
         self.driver = uc.Chrome(options=options)
 
