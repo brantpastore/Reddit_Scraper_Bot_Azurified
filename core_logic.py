@@ -72,17 +72,9 @@ else:
     print("DISCORD_TOKEN:", DISCORD_TOKEN)
     print("WEBHOOK:", WEBHOOK)
 
-# Initialize PRAW
-reddit = praw.Reddit(
-    client_id=os.getenv("REDDIT_CLIENT_ID"),
-    client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
-    user_agent=os.getenv("REDDIT_USER_AGENT")
-)
-
 # Function to sanitize the filename of the image or video scraped from Reddit
 def sanitize_filename(filename):
     return re.sub(r'[\\/*?:"<>|]', "_", filename)
-
 
 class ScraperBot:
     post_urls = {}  # Dictionary to store post URLs
