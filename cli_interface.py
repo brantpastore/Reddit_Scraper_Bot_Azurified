@@ -2,6 +2,7 @@
 # This file contains the main function that runs the
 # bot in either CLI mode or Discord bot mode.
 import time
+#import core_logic_reddit as core_logic
 import core_logic
 
 
@@ -11,13 +12,13 @@ def main():
 
     bot.run_discord()
     
-    '''
+    
     # Ask the user for the mode they want to run the bot in 
-        while True:
+    '''
+    while True:
         mode = input(
             "Enter 'cli' for CLI mode or 'discord' for Discord bot mode: "
         ).lower()
-
         if mode == "cli":
             bot.run_cli()
             break

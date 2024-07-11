@@ -7,6 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.proxy import Proxy, ProxyType
 from selenium.common.exceptions import NoSuchElementException
 from discord import app_commands
 from discord.ext import commands
@@ -14,6 +15,7 @@ from dotenv import load_dotenv
 from urllib.parse import urlparse, urljoin
 from azure.keyvault.secrets import SecretClient
 from azure.identity import ManagedIdentityCredential, DefaultAzureCredential
+from selenium_stealth import stealth
 import logging
 import sys
 import asyncio
@@ -24,6 +26,9 @@ import os
 import discord
 import logging
 import subprocess
+import undetected_chromedriver as uc
+import praw
+import random
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -39,9 +44,10 @@ if os.getenv("CHECK_ENV"):
     # Discord token and webhook URLs from local environment variables
     DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
     WEBHOOK = os.getenv("WEBHOOK")
-
+    
     print("DISCORD_TOKEN FROM CLI:", DISCORD_TOKEN)
     print("WEBHOOK FROM CLI:", WEBHOOK)
+    
 else:
     # Running in a web server environment (e.g., Azure App Service, Heroku)
 
@@ -66,6 +72,12 @@ else:
     print("DISCORD_TOKEN:", DISCORD_TOKEN)
     print("WEBHOOK:", WEBHOOK)
 
+# Initialize PRAW
+reddit = praw.Reddit(
+    client_id=os.getenv("REDDIT_CLIENT_ID"),
+    client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
+    user_agent=os.getenv("REDDIT_USER_AGENT")
+)
 
 # Function to sanitize the filename of the image or video scraped from Reddit
 def sanitize_filename(filename):
@@ -76,17 +88,29 @@ class ScraperBot:
     post_urls = {}  # Dictionary to store post URLs
 
     def __init__(self):
+        # original scraperbot code
         # set up selenium options for headless browsing
-        options = Options()
+        options = uc.ChromeOptions()
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument(
             "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         )
 
-        # service = Service(chromedriver_autoinstaller.install())
-        service = Service(ChromeDriverManager().install())
-        self.driver = webdriver.Chrome(service=service, options=options)
+        # Initialize the undetected Chrome driver
+        self.driver = uc.Chrome(options=options)
+
+        # Apply Selenium Stealth settings
+        stealth(self.driver,
+                languages=["en-US", "en"],
+                vendor="Google Inc.",
+                platform="Win32",
+                webgl_vendor="Intel Inc.",
+                renderer="Intel Iris OpenGL Engine",
+                fix_hairline=True
+                )
 
         # Set up the Discord bot with specific intents
         intents = discord.Intents.default()
@@ -230,7 +254,8 @@ class ScraperBot:
     # Navigate to the subreddit URL
     def go_to_subreddit(self, subreddit):
         self.driver.get(subreddit)
-        time.sleep(3)
+        # Random delay
+        time.sleep(random.uniform(2, 5))
 
     # Scroll down the page to load more posts
     def scroll_down(self):
@@ -240,7 +265,8 @@ class ScraperBot:
                 "window.scrollTo(0, document.body.scrollHeight);"
             )
             print("Waiting for posts to load...")
-            time.sleep(2)
+                   # Random delay
+            time.sleep(random.uniform(2, 5))
         except Exception as e:
             print(f"Error scrolling down: {e}")
 
@@ -255,6 +281,11 @@ class ScraperBot:
 
                 article_elements = self.driver.find_elements(By.TAG_NAME, "article")
                 print(f"Found {len(article_elements)} articles so far.")
+                
+                # get the whole html of the page
+                html = self.driver.page_source
+                
+                print(html)
             
                 for post in article_elements:
 
