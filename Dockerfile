@@ -26,7 +26,7 @@ RUN curl -fsSL https://aka.ms/install-azd.sh | bash
 RUN mkdir /home/discordBot
 COPY cli_interface.py /home/discordBot
 COPY main.py /home/discordBot
-COPY core_logic.py /home/discordBot
+COPY core_logic_reddit.py /home/discordBot
 COPY supervisord.conf /etc/supervisord.conf
 COPY supervisord.conf /etc/supervisor/conf.d
 
