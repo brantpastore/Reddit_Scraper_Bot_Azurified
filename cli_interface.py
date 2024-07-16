@@ -3,10 +3,16 @@
 # bot in either CLI mode or Discord bot mode.
 import time
 import core_logic_reddit as core_logic
+import logging
+import sys
 #import core_logic
 
 
 def main():
+    
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+    logger = logging.getLogger(__name__)
+    
     # Create the bot object
     bot = core_logic.ScraperBot()
 

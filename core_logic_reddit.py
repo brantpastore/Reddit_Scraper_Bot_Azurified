@@ -23,15 +23,10 @@ import requests
 import re
 import os
 import discord
-import logging
 import undetected_chromedriver as uc
 import asyncpraw
 import aiohttp
 import prawcore
-
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # check if being ran by a docker container
 if os.getenv("CHECK_ENV"):
@@ -41,14 +36,29 @@ if os.getenv("CHECK_ENV"):
     load_dotenv()
 
     # Discord token and webhook URLs from local environment variables
+    # Reddit API credentials from environment variables
+    REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
+    REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
+    REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT")
+    REDDIT_USERNAME = os.getenv("REDDIT_USERNAME")
+    REDDIT_PASSWORD = os.getenv("REDDIT_PASSWORD")
     DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
     WEBHOOK = os.getenv("WEBHOOK")
 
     print("DISCORD_TOKEN FROM CLI:", DISCORD_TOKEN)
     print("WEBHOOK FROM CLI:", WEBHOOK)
+    print("REDDIT_CLIENT_ID FROM CLI:", REDDIT_CLIENT_ID)
+    print("REDDIT_CLIENT_SECRET FROM CLI:", REDDIT_CLIENT_SECRET)
+    print("REDDIT_USER_AGENT FROM CLI:", REDDIT_USER_AGENT)
+    print("REDDIT_USERNAME FROM CLI:", REDDIT_USERNAME)
+    print("REDDIT_PASSWORD FROM CLI:", REDDIT_PASSWORD)
 
 else:
     # Running in a web server environment (e.g., Azure App Service, Heroku)
+    
+    # Set up logging
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+    logger = logging.getLogger(__name__)
 
     # Azure Key Vault URL
     vault_url = "https://FeashDiscordBot.vault.azure.net"
@@ -67,17 +77,29 @@ else:
     # Retrieve secrets from Azure Key Vault
     DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
     WEBHOOK = os.getenv("WEBHOOK")
+    # Reddit API credentials from environment variables
+    REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
+    REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
+    REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT")
+    REDDIT_USERNAME = os.getenv("REDDIT_USERNAME")
+    REDDIT_PASSWORD = os.getenv("REDDIT_PASSWORD")
 
     print("DISCORD_TOKEN:", DISCORD_TOKEN)
     print("WEBHOOK:", WEBHOOK)
-
-# Reddit API credentials from environment variables
-REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
-REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
-REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT")
-REDDIT_USERNAME = os.getenv("REDDIT_USERNAME")
-REDDIT_PASSWORD = os.getenv("REDDIT_PASSWORD")
-
+    print("REDDIT_CLIENT_ID:", REDDIT_CLIENT_ID)
+    print("REDDIT_CLIENT_SECRET:", REDDIT_CLIENT_SECRET)
+    print("REDDIT_USER_AGENT:", REDDIT_USER_AGENT)
+    print("REDDIT_USERNAME:", REDDIT_USERNAME)
+    print("REDDIT_PASSWORD:", REDDIT_PASSWORD)
+    
+    # log the secrets
+    logger.info(f"DISCORD_TOKEN: {DISCORD_TOKEN}")
+    logger.info(f"WEBHOOK: {WEBHOOK}")
+    logger.info(f"REDDIT_CLIENT_ID: {REDDIT_CLIENT_ID}")
+    logger.info(f"REDDIT_CLIENT_SECRET: {REDDIT_CLIENT_SECRET}")
+    logger.info(f"REDDIT_USER_AGENT: {REDDIT_USER_AGENT}")
+    logger.info(f"REDDIT_USERNAME: {REDDIT_USERNAME}")
+    logger.info(f"REDDIT_PASSWORD: {REDDIT_PASSWORD}")
 
 # Function to sanitize the filename of the image or video scraped from Reddit
 def sanitize_filename(filename):
