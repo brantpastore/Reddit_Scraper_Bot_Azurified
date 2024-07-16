@@ -12,7 +12,6 @@ def main():
 
     bot.run_discord()
     
-    
     # Ask the user for the mode they want to run the bot in 
     '''
     while True:
