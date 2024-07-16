@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 from urllib.parse import urlparse, urljoin
 from azure.keyvault.secrets import SecretClient
 from azure.identity import ManagedIdentityCredential, DefaultAzureCredential
+from sanitize_filename import sanitize
 import logging
 import sys
 import asyncio
@@ -70,12 +71,12 @@ else:
     print("DISCORD_TOKEN:", DISCORD_TOKEN)
     print("WEBHOOK:", WEBHOOK)
 
-# Initialize Async PRAW
-reddit = asyncpraw.Reddit(
-    client_id=os.getenv("REDDIT_CLIENT_ID"),
-    client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
-    user_agent=os.getenv("REDDIT_USER_AGENT"),
-)
+# Reddit API credentials from environment variables
+REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
+REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
+REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT")
+REDDIT_USERNAME = os.getenv("REDDIT_USERNAME")
+REDDIT_PASSWORD = os.getenv("REDDIT_PASSWORD")
 
 
 # Function to sanitize the filename of the image or video scraped from Reddit
@@ -83,26 +84,50 @@ def sanitize_filename(filename):
     return re.sub(r'[\\/*?:"<>|]', "_", filename)
 
 
+def get_reddit_access_token():
+    auth = requests.auth.HTTPBasicAuth(REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET)
+    data = {
+        "grant_type": "password",
+        "username": REDDIT_USERNAME,
+        "password": REDDIT_PASSWORD,
+    }
+    headers = {"User-Agent": REDDIT_USER_AGENT}
+
+    try:
+        response = requests.post(
+            "https://www.reddit.com/api/v1/access_token",
+            auth=auth,
+            data=data,
+            headers=headers,
+        )
+        response.raise_for_status()  # Raise an error for bad responses (4xx or 5xx)
+
+        token = response.json().get("access_token")
+        if not token:
+            raise KeyError("Access token not found in response.")
+
+        return token
+
+    except requests.exceptions.RequestException as err:
+        print(f"Request error occurred: {err}")
+        raise  # Re-raise the exception to handle it higher up
+    except KeyError as key_err:
+        print(f"KeyError: {key_err}")
+        raise  # Re-raise the exception to handle it higher up
+
+# Get the Reddit access token
+REDDIT_ACCESS_TOKEN = get_reddit_access_token()
+
+# Set up the headers for authenticated API requests
+headers = {
+    "Authorization": f"bearer {REDDIT_ACCESS_TOKEN}",
+    "User-Agent": REDDIT_USER_AGENT,
+}
+
 class ScraperBot:
     post_urls = {}  # Dictionary to store post URLs
 
     def __init__(self):
-        """original scraperbot code
-        # set up selenium options for headless browsing
-        options = uc.ChromeOptions()
-        options.add_argument("--headless")
-        options.add_argument("--no-sandbox")
-        options.add_argument(
-            "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        )
-
-        # service = Service(chromedriver_autoinstaller.install())
-        # service = Service(ChromeDriverManager().install())
-        # self.driver = webdriver.Chrome(service=service, options=options)
-
-        # Initialize the undetected Chrome driver
-        self.driver = uc.Chrome(options=options)
-        """
 
         # Set up the Discord bot with specific intents
         intents = discord.Intents.default()
@@ -174,12 +199,8 @@ class ScraperBot:
             interaction: discord.Interaction, subreddit_name: str, num_posts: int = 1
         ):
             try:
-                subreddit = await reddit.subreddit(
-                    subreddit_name
-                )  # Await the coroutine here
-                subreddit_exists = subreddit.display_name
-
-                if subreddit_exists:
+                subreddit = await self.check_subreddit_exists(subreddit_name)
+                if subreddit:
                     await interaction.response.defer()
                     await interaction.followup.send(
                         f"Starting to scrape {num_posts} posts from: r/{subreddit_name}"
@@ -197,42 +218,78 @@ class ScraperBot:
 
     async def check_subreddit_exists(self, subreddit_name):
         try:
-            subreddit = await reddit.subreddit(subreddit_name, fetch=True)
-            return subreddit.display_name
-        except:
+            response = requests.get(
+                f"https://oauth.reddit.com/r/{subreddit_name}/about", headers=headers
+            )
+            if response.status_code == 200:
+                return subreddit_name
+            return None
+        except Exception as e:
+            print(f"An error occurred: {e}")
             return None
 
-    # Scrapes a subreddit and sends the results to the Discord channel
     async def scrape_subreddit(self, interaction, subreddit_url, num_posts):
         print(f"Scraping {num_posts} posts from: {subreddit_url}")
+        
         try:
-            subreddit = await reddit.subreddit(subreddit_url)  # Await the coroutine
-            top_posts = subreddit.top(limit=num_posts)
+            response = requests.get(
+                f"https://oauth.reddit.com/r/{subreddit_url}/top?limit={num_posts}",
+                headers=headers,
+            )
+            response.raise_for_status()  # Raise an error for bad responses (4xx or 5xx)
+            
+            print(f"Response status code: {response.status_code}")
+            print(f"Response content: {response.content}")
+            print(f"Response JSON: {response.json()}")
+            
+            if response.status_code == 200:
+                posts = response.json().get("data", {}).get("children", [])
+                for post in posts:
+                    post_data = post.get("data", {})
+                    if post_data:
+                        print("Post data:", post_data)
+                        print("Moving to get_post_content")
+                        await self.get_post_content(post_data, interaction)
+            else:
+                await interaction.followup.send(f"Failed to fetch posts. Status code: {response.status_code}")
 
-            async for post in top_posts:
-                await self.get_post_content(interaction, post)
-
-        except Exception as e:
+        except requests.exceptions.HTTPError as http_err:
+            await interaction.followup.send(f"HTTP error occurred: {http_err}")
+            print(f"HTTP error occurred: {http_err}")
+        except requests.exceptions.RequestException as e:
             await interaction.followup.send(f"An error occurred: {e}")
             print(f"An error occurred: {e}")
+        except Exception as e:
+            print("Error encountered in scrape_subreddit:", e)
+            await interaction.followup.send(f"An unexpected error occurred: {e}")
 
     # Get the content of a specific post
     async def get_post_content(self, post, interaction=None):
-        print("Getting post content for", post.url)
-        title = post.title
-        image = post.url if post.url.endswith((".jpg", ".jpeg", ".png")) else None
-        video = (
-            post.media["reddit_video"]["fallback_url"]
-            if post.media and "reddit_video" in post.media
-            else None
-        )
+        try:
+            print("Getting post content for", post.get("url"))
+            title = post.get("title")
+            
+            # Check if media is present and extract relevant info
+            media = post.get("media")
+            if media and "reddit_video" in media:
+                video = media["reddit_video"]["fallback_url"]
+            else:
+                video = None
+            
+            # Determine if it's an image URL
+            image = post.get("url") if post.get("url").endswith((".jpg", ".jpeg", ".png")) else None
 
-        if image and not video:  # If we found an image but no video, process the image
-            await self.process_image(image, title, interaction)
-        elif video and not image:  # If we found a video but no image, process the video
-            await self.process_video(video, title, interaction)
-        else:
-            print("No image or video found.")
+            if image and not video:
+                await self.process_image(image, title, interaction)
+            elif video and not image:
+                await self.process_video(video, title, interaction)
+            else:
+                print("No image or video found.")
+
+        except Exception as e:
+            print("Error getting post content:", e)
+            await interaction.followup.send(f"An unexpected error occurred while processing the post: {e}")
+
 
     # Process the image and send it to the Discord channel
     async def process_image(self, image_url, title, interaction=None):
@@ -246,7 +303,7 @@ class ScraperBot:
         with open(image_filename, "wb") as file:
             file.write(content)
 
-        title_payload = {"content": title}
+        title_payload = {"content": f"{title}\n{image_url}"}
         files = {"file": open(image_filename, "rb")}
 
         await self.send_to_discord_channel(title_payload, files, interaction)
@@ -258,8 +315,16 @@ class ScraperBot:
         print("Video URL:", video_url)
         async with aiohttp.ClientSession() as session:
             async with session.get(video_url, timeout=None) as response:
+                # Check content length
+                content_length = response.headers.get('Content-Length')
+                if content_length and int(content_length) > 25 * 1024 * 1024:  # 25MB limit
+                    print(f"Video at {video_url} is larger than 25MB, skipping processing.")
+                    title_payload = {"content": f"{title}\n{video_url}"}
+                    await self.send_to_discord_channel(title_payload, files=None, interaction=interaction)
+                    return
+
                 extension = os.path.splitext(urlparse(video_url).path)[1] or ".mp4"
-                video_filename = sanitize_filename(f"{title}{extension}")
+                video_filename = sanitize(f"{title}{extension}")
 
                 with open(video_filename, "wb") as video_file:
                     while True:
@@ -269,9 +334,9 @@ class ScraperBot:
                         video_file.write(chunk)
 
         # Send video to Discord
-        title_payload = {"content": title}
+        title_payload = {"content": f"{title}\n{video_url}"}
         files = {"file": open(video_filename, "rb")}
-
+        
         await self.send_to_discord_channel(title_payload, files, interaction)
 
         files["file"].close()
@@ -290,8 +355,10 @@ class ScraperBot:
         # send the files if there are any
         if files:
             for key, value in files.items():
-                await text_channel.send(file=discord.File(value))
-                files[key].close()
+                if value:
+                    if key == "file" and not title_payload["content"].endswith((".jpg", ".jpeg", ".png")):
+                        await text_channel.send(file=discord.File(value))
+                    files[key].close()
 
         return
 
@@ -312,18 +379,17 @@ class ScraperBot:
     # Select the number of posts to scrape from the subreddit
     async def select_posts(self, subreddit_name, num_posts):
         try:
+            reddit = asyncpraw.Reddit(
+                client_id=REDDIT_CLIENT_ID,
+                client_secret=REDDIT_CLIENT_SECRET,
+                user_agent=REDDIT_USER_AGENT,
+            )
             subreddit = await reddit.subreddit(subreddit_name)
             top_posts = subreddit.top(limit=num_posts)
-            return [post async for post in top_posts]
-        except prawcore.exceptions.NotFound:
-            print(f"Subreddit {subreddit_name} not found.")
-            return []
-        except prawcore.exceptions.RequestException as e:
-            print(f"RequestException: {e}")
-            return []
-        except Exception as e:
-            print(f"An unexpected error occurred: {e}")
-            return []
+            return top_posts
+        except prawcore.exceptions.Redirect:
+            print("Invalid subreddit name. Please provide a valid subreddit name.")
+            return None
 
     # Run the CLI interface
     def run_cli(self):

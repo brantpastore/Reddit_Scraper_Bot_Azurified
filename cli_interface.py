@@ -2,8 +2,8 @@
 # This file contains the main function that runs the
 # bot in either CLI mode or Discord bot mode.
 import time
-#import core_logic_reddit as core_logic
-import core_logic
+import core_logic_reddit as core_logic
+#import core_logic
 
 
 def main():
