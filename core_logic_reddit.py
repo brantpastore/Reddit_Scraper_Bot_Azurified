@@ -18,7 +18,7 @@ from sanitize_filename import sanitize
 import logging
 import sys
 import asyncio
-import time
+import subprocess
 import requests
 import re
 import os
@@ -44,14 +44,6 @@ if os.getenv("CHECK_ENV"):
     REDDIT_PASSWORD = os.getenv("REDDIT_PASSWORD")
     DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
     WEBHOOK = os.getenv("WEBHOOK")
-
-    print("DISCORD_TOKEN FROM CLI:", DISCORD_TOKEN)
-    print("WEBHOOK FROM CLI:", WEBHOOK)
-    print("REDDIT_CLIENT_ID FROM CLI:", REDDIT_CLIENT_ID)
-    print("REDDIT_CLIENT_SECRET FROM CLI:", REDDIT_CLIENT_SECRET)
-    print("REDDIT_USER_AGENT FROM CLI:", REDDIT_USER_AGENT)
-    print("REDDIT_USERNAME FROM CLI:", REDDIT_USERNAME)
-    print("REDDIT_PASSWORD FROM CLI:", REDDIT_PASSWORD)
 
 else:
     # Running in a web server environment (e.g., Azure App Service, Heroku)
@@ -84,28 +76,12 @@ else:
     REDDIT_USERNAME = os.getenv("REDDIT_USERNAME")
     REDDIT_PASSWORD = os.getenv("REDDIT_PASSWORD")
 
-    print("DISCORD_TOKEN:", DISCORD_TOKEN)
-    print("WEBHOOK:", WEBHOOK)
-    print("REDDIT_CLIENT_ID:", REDDIT_CLIENT_ID)
-    print("REDDIT_CLIENT_SECRET:", REDDIT_CLIENT_SECRET)
-    print("REDDIT_USER_AGENT:", REDDIT_USER_AGENT)
-    print("REDDIT_USERNAME:", REDDIT_USERNAME)
-    print("REDDIT_PASSWORD:", REDDIT_PASSWORD)
-    
-    # log the secrets
-    logger.info(f"DISCORD_TOKEN: {DISCORD_TOKEN}")
-    logger.info(f"WEBHOOK: {WEBHOOK}")
-    logger.info(f"REDDIT_CLIENT_ID: {REDDIT_CLIENT_ID}")
-    logger.info(f"REDDIT_CLIENT_SECRET: {REDDIT_CLIENT_SECRET}")
-    logger.info(f"REDDIT_USER_AGENT: {REDDIT_USER_AGENT}")
-    logger.info(f"REDDIT_USERNAME: {REDDIT_USERNAME}")
-    logger.info(f"REDDIT_PASSWORD: {REDDIT_PASSWORD}")
-
 # Function to sanitize the filename of the image or video scraped from Reddit
 def sanitize_filename(filename):
     return re.sub(r'[\\/*?:"<>|]', "_", filename)
 
 
+# Define your function to get the Reddit access token
 def get_reddit_access_token():
     auth = requests.auth.HTTPBasicAuth(REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET)
     data = {
@@ -140,10 +116,12 @@ def get_reddit_access_token():
 # Get the Reddit access token
 REDDIT_ACCESS_TOKEN = get_reddit_access_token()
 
-# Set up the headers for authenticated API requests
+# Set up the headers for authenticated API requests, including the header for NSFW content
 headers = {
     "Authorization": f"bearer {REDDIT_ACCESS_TOKEN}",
     "User-Agent": REDDIT_USER_AGENT,
+    "Content-Type": "application/json",
+    "X-Requested-With": "XMLHttpRequest",
 }
 
 class ScraperBot:
@@ -238,32 +216,55 @@ class ScraperBot:
                     f"An error occurred while processing the command: {str(e)}"
                 )
 
+
+    def handle_error_message(self, error_message):
+        if "community not found" in error_message.lower():
+            return False  # Subreddit does not exist
+        elif "is private" in error_message.lower():
+            return False  # Subreddit is private
+        elif "is banned" in error_message.lower():
+            return False  # Subreddit is banned
+        else:
+            return True  # Subreddit exists
+        
     async def check_subreddit_exists(self, subreddit_name):
         try:
             response = requests.get(
                 f"https://oauth.reddit.com/r/{subreddit_name}/about", headers=headers
             )
             if response.status_code == 200:
-                return subreddit_name
-            return None
-        except Exception as e:
+                data = response.json()
+                if data.get("error"):
+                    error_message = data["message"]
+                    subreddit_exists = self.handle_error_message(error_message)
+                else:
+                    subreddit_exists = True  # Subreddit exists
+            elif response.status_code == 404:
+                subreddit_exists = False  # Subreddit not found
+            else:
+                # Handle other response status codes as needed
+                print(f"Unexpected status code: {response.status_code}")
+                subreddit_exists = None
+        
+        except requests.exceptions.RequestException as e:
             print(f"An error occurred: {e}")
-            return None
+            subreddit_exists = None
+        except Exception as e:
+            print(f"Unexpected error occurred: {e}")
+            subreddit_exists = None
+        
+        return subreddit_exists
 
     async def scrape_subreddit(self, interaction, subreddit_url, num_posts):
         print(f"Scraping {num_posts} posts from: {subreddit_url}")
-        
+
         try:
             response = requests.get(
                 f"https://oauth.reddit.com/r/{subreddit_url}/top?limit={num_posts}",
                 headers=headers,
             )
             response.raise_for_status()  # Raise an error for bad responses (4xx or 5xx)
-            
-            print(f"Response status code: {response.status_code}")
-            print(f"Response content: {response.content}")
-            print(f"Response JSON: {response.json()}")
-            
+
             if response.status_code == 200:
                 posts = response.json().get("data", {}).get("children", [])
                 for post in posts:
@@ -290,32 +291,65 @@ class ScraperBot:
         try:
             print("Getting post content for", post.get("url"))
             title = post.get("title")
-            
-            # Check if media is present and extract relevant info
-            media = post.get("media")
-            if media and "reddit_video" in media:
-                video = media["reddit_video"]["fallback_url"]
-            else:
-                video = None
-            
-            # Determine if it's an image URL
-            image = post.get("url") if post.get("url").endswith((".jpg", ".jpeg", ".png")) else None
+            nsfw = post.get("over_18", False)  # Check if the post is NSFW
+            gallery = post.get("is_gallery", False)
 
-            if image and not video:
-                await self.process_image(image, title, interaction)
-            elif video and not image:
-                await self.process_video(video, title, interaction)
+            if gallery:
+                await self.process_gallery(post, title, interaction, nsfw)
             else:
-                print("No image or video found.")
+                media = post.get("media")
+                video = media["reddit_video"]["fallback_url"] if media and "reddit_video" in media else None
+                hls_video = media["reddit_video"]["hls_url"] if media and "reddit_video" in media else None
+                image = post.get("url") if post.get("url").endswith((".jpg", ".jpeg", ".png")) else None
+                gif = post.get("url") if post.get("url").endswith(".gif") else None
+
+                if hls_video:
+                    await self.process_video(hls_video, title, interaction, nsfw)
+                elif video and not image and not gif:
+                    await self.process_video(video, title, interaction, nsfw)
+                elif image and not video and not gif:
+                    await self.process_image(image, title, interaction, nsfw)
+                elif gif and not image and not video:
+                    await self.process_gif(gif, title, interaction, nsfw)
+                else:
+                    print("No image, video, gif, or gallery found.")
+                    await interaction.followup.send(f"No image, video, gif, or gallery found for post: {title} ({post.get('url')})")
 
         except Exception as e:
             print("Error getting post content:", e)
             await interaction.followup.send(f"An unexpected error occurred while processing the post: {e}")
 
+    async def process_gallery(self, post, title, interaction, nsfw):
+        try:
+            gallery_data = post.get("gallery_data", {}).get("items", [])
+            media_metadata = post.get("media_metadata", {})
+
+            # Process only the first item in the gallery
+            if gallery_data:
+                item = gallery_data[0]
+                media_id = item.get("media_id")
+                if media_id:
+                    media_info = media_metadata.get(media_id, {})
+                    mime_type = media_info.get("m", "")
+                    url = f"https://i.redd.it/{media_id}.jpg"
+
+                    if mime_type.startswith("image"):
+                        await self.process_image(url, title, interaction, nsfw)
+                    elif mime_type.startswith("video"):
+                        await self.process_video(url, title, interaction, nsfw)
+                    elif mime_type.endswith("gif"):
+                        await self.process_gif(url, title, interaction, nsfw)
+                    else:
+                        print(f"Unknown media type for {media_id}")
+
+        except Exception as e:
+            print("Error processing gallery content:", e)
+            await interaction.followup.send(f"An unexpected error occurred while processing the gallery: {e}")
 
     # Process the image and send it to the Discord channel
-    async def process_image(self, image_url, title, interaction=None):
+    async def process_image(self, image_url, title, interaction=None, nsfw=False):
         print("Image URL:", image_url)
+
         image_filename = sanitize_filename(f"{title}.png")
 
         async with aiohttp.ClientSession() as session:
@@ -333,36 +367,116 @@ class ScraperBot:
         files["file"].close()
         os.remove(image_filename)
 
-    async def process_video(self, video_url, title, interaction=None):
+    # Process the video and send it to the Discord channel
+    async def process_video(self, video_url, title, interaction=None, nsfw=False):
         print("Video URL:", video_url)
+        
         async with aiohttp.ClientSession() as session:
             async with session.get(video_url, timeout=None) as response:
-                # Check content length
-                content_length = response.headers.get('Content-Length')
-                if content_length and int(content_length) > 25 * 1024 * 1024:  # 25MB limit
-                    print(f"Video at {video_url} is larger than 25MB, skipping processing.")
+                content_type = response.headers.get('Content-Type')
+                
+                if (
+                    "application/vnd.apple.mpegurl" in content_type
+                    or "application/x-mpegurl" in content_type
+                ):
+                    # HLS stream detected, use FFmpeg to convert
+                    video_filename = sanitize_filename(f"{title}.mp4")
+                    
+                    ffmpeg_cmd = [
+                        "ffmpeg",
+                        "-i", video_url,
+                        "-c:v", "libx264",  # Video codec
+                        "-crf", "25",  # Constant Rate Factor (0-51, lower is better quality)
+                        "-preset", "veryfast",  # Preset for encoding speed vs. compression ratio
+                        "-max_muxing_queue_size", "1024",  # Max demux queue size
+                        "-c:a", "aac",  # Audio codec
+                        "-b:a", "128k",  # Audio bitrate
+                        "-bsf:a", "aac_adtstoasc",
+                        video_filename,
+                    ]
+                    
+                    try:
+                        subprocess.run(ffmpeg_cmd, check=True, timeout=300)  # 5-minute timeout
+                        print(f"Successfully downloaded and processed video: {video_filename}")
+                        
+                        # Check file size
+                        file_size = os.path.getsize(video_filename)
+                        if file_size == 0:
+                            print("Downloaded video file is empty")
+                            return
+                        elif file_size > 25 * 1024 * 1024:
+                            print("Downloaded video file is too large to send to Discord")
+                            title_payload = {"content": f"{title}\n{video_url}"}
+                            await self.send_to_discord_channel(title_payload, files=None, interaction=interaction)
+                            return
+                        
+                        # Send video to Discord
+                        title_payload = {"content": f"{title}\n{video_url}"}
+                        if nsfw:
+                            title_payload["content"] = f"NSFW: {title}\n{video_url}"
+                        files = {"file": open(video_filename, "rb")}
+                        
+                        await self.send_to_discord_channel(title_payload, files, interaction)
+                        
+                        files["file"].close()
+                        os.remove(video_filename)
+                        
+                    except subprocess.TimeoutExpired:
+                        print("FFmpeg process timed out")
+                        return
+                    except subprocess.CalledProcessError as e:
+                        print(f"Error processing video: {e}")
+                        return
+                
+                else:
+                    # Regular video file, handle as before
+                    content_length = response.headers.get('Content-Length')
+                    if content_length and int(content_length) > 25 * 1024 * 1024:  # 25MB limit
+                        print(f"Video at {video_url} is larger than 25MB, skipping processing.")
+                        title_payload = {"content": f"{title}\n{video_url}"}
+                        await self.send_to_discord_channel(title_payload, files=None, interaction=interaction)
+                        return
+
+                    extension = os.path.splitext(urlparse(video_url).path)[1] or ".mp4"
+                    video_filename = sanitize_filename(f"{title}{extension}")
+
+                    with open(video_filename, "wb") as video_file:
+                        while True:
+                            chunk = await response.content.read(1024)
+                            if not chunk:
+                                break
+                            video_file.write(chunk)
+
+                    # Send video to Discord
                     title_payload = {"content": f"{title}\n{video_url}"}
-                    await self.send_to_discord_channel(title_payload, files=None, interaction=interaction)
-                    return
+                    if nsfw:
+                        title_payload["content"] = f"NSFW: {title}\n{video_url}"
+                    files = {"file": open(video_filename, "rb")}
 
-                extension = os.path.splitext(urlparse(video_url).path)[1] or ".mp4"
-                video_filename = sanitize(f"{title}{extension}")
+                    await self.send_to_discord_channel(title_payload, files, interaction)
 
-                with open(video_filename, "wb") as video_file:
-                    while True:
-                        chunk = await response.content.read(1024)
-                        if not chunk:
-                            break
-                        video_file.write(chunk)
+                    files["file"].close()
+                    os.remove(video_filename)
 
-        # Send video to Discord
-        title_payload = {"content": f"{title}\n{video_url}"}
-        files = {"file": open(video_filename, "rb")}
-        
+    # Process the gif and send it to the Discord channel
+    async def process_gif(self, gif_url, title, interaction=None, nsfw=False):
+        print("Gif URL:", gif_url)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(gif_url) as response:
+                content = await response.read()
+
+        gif_filename = sanitize_filename(f"{title}.gif")
+
+        with open(gif_filename, "wb") as file:
+            file.write(content)
+
+        title_payload = {"content": f"{title}\n{gif_url}"}
+        files = {"file": open(gif_filename, "rb")}
+
         await self.send_to_discord_channel(title_payload, files, interaction)
 
         files["file"].close()
-        os.remove(video_filename)
+        os.remove(gif_filename)
 
     async def send_to_discord_channel(self, title_payload, files, interaction):
         # check the channel the command was called from,
