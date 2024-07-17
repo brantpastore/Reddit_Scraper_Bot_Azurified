@@ -16,6 +16,7 @@ def main():
     # Create the bot object
     bot = core_logic.ScraperBot()
 
+    # Run the bot
     bot.run_discord()
     
     # Ask the user for the mode they want to run the bot in 
