@@ -7,6 +7,9 @@ RUN pip
 RUN python3 -m venv antenv
 RUN . antenv/bin/activate
 RUN pip install --upgrade pip
+
+# Install ffmpeg
+RUN apt install -y ffmpeg
 # RUN pip packages
 COPY requirements.txt .
 RUN pip install -r requirements.txt
