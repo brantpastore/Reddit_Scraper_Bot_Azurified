@@ -7,6 +7,7 @@ RUN pip
 RUN python3 -m venv antenv
 RUN . antenv/bin/activate
 RUN pip install --upgrade pip
+
 # RUN pip packages
 COPY requirements.txt .
 RUN pip install -r requirements.txt
@@ -22,6 +23,10 @@ RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.d
 RUN dpkg -i google-chrome*.deb
 # Install azcli dependencies
 RUN curl -fsSL https://aka.ms/install-azd.sh | bash
+
+# Install ffmpeg
+RUN apt install -y ffmpeg
+
 # Create a directory, copy over our python program, and run the CLI Interface of the program.
 RUN mkdir /home/discordBot
 COPY python_files/original_version/cli_interface.py /home/discordBot
