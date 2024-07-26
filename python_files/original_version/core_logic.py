@@ -1,5 +1,7 @@
 # Description:
 # This file contains the core logic for the Reddit scraper bot.
+# This one specifically just uses web scraping to get the posts from Reddit, doesn't use the Reddit API.
+# So this one doesn't work as well as the other one, but it's still functional usually.
 # It uses Selenium to scrape posts from Reddit and sends the results to a Discord channel using webhooks.
 # The bot can be run in the CLI or as a Discord bot.
 from selenium import webdriver

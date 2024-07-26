@@ -24,11 +24,13 @@ RUN dpkg -i google-chrome*.deb
 RUN curl -fsSL https://aka.ms/install-azd.sh | bash
 # Create a directory, copy over our python program, and run the CLI Interface of the program.
 RUN mkdir /home/discordBot
-COPY cli_interface.py /home/discordBot
-COPY main.py /home/discordBot
-COPY core_logic_reddit.py /home/discordBot
+COPY python_files/original_version/cli_interface.py /home/discordBot
+COPY python_files/current_version/main.py /home/discordBot
+COPY python_files/original_version/core_logic_reddit.py /home/discordBot
 COPY supervisord.conf /etc/supervisord.conf
 COPY supervisord.conf /etc/supervisor/conf.d
+
+
 
 # Install supervisor
 RUN apt-get install -y supervisor

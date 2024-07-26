@@ -1,5 +1,6 @@
 # Description:
 # This file contains the core logic for the Reddit scraper bot.
+# This one specifically utilizes Reddit's API to scrape posts from Reddit and send them to a Discord channel.
 # It uses Selenium to scrape posts from Reddit and sends the results to a Discord channel using webhooks.
 # The bot can be run in the CLI or as a Discord bot.
 from selenium import webdriver
@@ -34,9 +35,6 @@ if os.getenv("CHECK_ENV"):
 
     # Load environment variables from a .env file
     load_dotenv()
-
-    # Discord token and webhook URLs from local environment variables
-    # Reddit API credentials from environment variables
     REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
     REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
     REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT")
@@ -47,7 +45,7 @@ if os.getenv("CHECK_ENV"):
 
 else:
     # Running in a web server environment (e.g., Azure App Service, Heroku)
-    
+
     # Set up logging
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
     logger = logging.getLogger(__name__)
@@ -58,7 +56,7 @@ else:
     # Create a secret client
     logger = logging.getLogger("azure.identity")
     logger.setLevel(logging.INFO)
-
+    # Log to stdout
     handler = logging.StreamHandler(stream=sys.stdout)
     formatter = logging.Formatter("[%(levelname)s %(name)s] %(message)s")
     handler.setFormatter(formatter)
@@ -66,19 +64,19 @@ else:
     credential = DefaultAzureCredential()  # ManagedIdentityCredential()
     client = SecretClient(vault_url=vault_url, credential=credential)
 
-    # Retrieve secrets from Azure Key Vault
+    # Get the secrets from Azure Key Vault
     DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
     WEBHOOK = os.getenv("WEBHOOK")
-    # Reddit API credentials from environment variables
     REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
     REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
     REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT")
     REDDIT_USERNAME = os.getenv("REDDIT_USERNAME")
     REDDIT_PASSWORD = os.getenv("REDDIT_PASSWORD")
 
+
 # Function to sanitize the filename of the image or video scraped from Reddit
 def sanitize_filename(filename):
-    return re.sub(r'[\\/*?:"<>|]', "_", filename)
+    return re.sub(r'[\\/*?:"<>|]', "_", filename).strip()
 
 
 # Define your function to get the Reddit access token
@@ -113,6 +111,7 @@ def get_reddit_access_token():
         print(f"KeyError: {key_err}")
         raise  # Re-raise the exception to handle it higher up
 
+
 # Get the Reddit access token
 REDDIT_ACCESS_TOKEN = get_reddit_access_token()
 
@@ -123,6 +122,7 @@ headers = {
     "Content-Type": "application/json",
     "X-Requested-With": "XMLHttpRequest",
 }
+
 
 class ScraperBot:
     post_urls = {}  # Dictionary to store post URLs
@@ -216,7 +216,6 @@ class ScraperBot:
                     f"An error occurred while processing the command: {str(e)}"
                 )
 
-
     def handle_error_message(self, error_message):
         if "community not found" in error_message.lower():
             return False  # Subreddit does not exist
@@ -226,7 +225,7 @@ class ScraperBot:
             return False  # Subreddit is banned
         else:
             return True  # Subreddit exists
-        
+
     async def check_subreddit_exists(self, subreddit_name):
         try:
             response = requests.get(
@@ -245,14 +244,14 @@ class ScraperBot:
                 # Handle other response status codes as needed
                 print(f"Unexpected status code: {response.status_code}")
                 subreddit_exists = None
-        
+
         except requests.exceptions.RequestException as e:
             print(f"An error occurred: {e}")
             subreddit_exists = None
         except Exception as e:
             print(f"Unexpected error occurred: {e}")
             subreddit_exists = None
-        
+
         return subreddit_exists
 
     async def scrape_subreddit(self, interaction, subreddit_url, num_posts):
@@ -274,7 +273,9 @@ class ScraperBot:
                         print("Moving to get_post_content")
                         await self.get_post_content(post_data, interaction)
             else:
-                await interaction.followup.send(f"Failed to fetch posts. Status code: {response.status_code}")
+                await interaction.followup.send(
+                    f"Failed to fetch posts. Status code: {response.status_code}"
+                )
 
         except requests.exceptions.HTTPError as http_err:
             await interaction.followup.send(f"HTTP error occurred: {http_err}")
@@ -293,34 +294,66 @@ class ScraperBot:
             title = post.get("title")
             nsfw = post.get("over_18", False)  # Check if the post is NSFW
             gallery = post.get("is_gallery", False)
+            perm_url = post.get("permalink")
+            reddit_post_url = urljoin("https://www.reddit.com", perm_url)
 
             if gallery:
                 await self.process_gallery(post, title, interaction, nsfw)
             else:
                 media = post.get("media")
-                video = media["reddit_video"]["fallback_url"] if media and "reddit_video" in media else None
-                hls_video = media["reddit_video"]["hls_url"] if media and "reddit_video" in media else None
-                image = post.get("url") if post.get("url").endswith((".jpg", ".jpeg", ".png")) else None
+                video = (
+                    media["reddit_video"]["fallback_url"]
+                    if media and "reddit_video" in media
+                    else None
+                )
+                hls_video = (
+                    media["reddit_video"]["hls_url"]
+                    if media and "reddit_video" in media
+                    else None
+                )
+                image = (
+                    post.get("url")
+                    if post.get("url").endswith((".jpg", ".jpeg", ".png"))
+                    else None
+                )
                 gif = post.get("url") if post.get("url").endswith(".gif") else None
 
                 if hls_video:
-                    await self.process_video(hls_video, title, interaction, nsfw)
+                    backup_video = video if video else None
+                    await self.process_video(
+                        hls_video, title, backup_video, interaction, nsfw
+                    )
                 elif video and not image and not gif:
                     await self.process_video(video, title, interaction, nsfw)
                 elif image and not video and not gif:
-                    await self.process_image(image, title, interaction, nsfw)
+                    await self.process_image(
+                        image, title, reddit_post_url, interaction, nsfw
+                    )
                 elif gif and not image and not video:
-                    await self.process_gif(gif, title, interaction, nsfw)
+                    await self.process_gif(
+                        gif, title, reddit_post_url, interaction, nsfw
+                    )
                 else:
                     print("No image, video, gif, or gallery found.")
-                    await interaction.followup.send(f"No image, video, gif, or gallery found for post: {title} ({post.get('url')})")
+                    await interaction.followup.send(
+                        f"No image, video, gif, or gallery found for post: {title} ({post.get('url')})"
+                    )
 
         except Exception as e:
             print("Error getting post content:", e)
-            await interaction.followup.send(f"An unexpected error occurred while processing the post: {e}")
+            await interaction.followup.send(
+                f"An unexpected error occurred while processing the post: {e}"
+            )
 
     async def process_gallery(self, post, title, interaction, nsfw):
         try:
+            print(f"Interaction type: {type(interaction)}, Interaction: {interaction}")
+
+            if not hasattr(interaction, "followup"):
+                raise ValueError(
+                    "The interaction object does not have the expected 'followup' attribute."
+                )
+
             gallery_data = post.get("gallery_data", {}).get("items", [])
             media_metadata = post.get("media_metadata", {})
 
@@ -334,23 +367,33 @@ class ScraperBot:
                     url = f"https://i.redd.it/{media_id}.jpg"
 
                     if mime_type.startswith("image"):
-                        await self.process_image(url, title, interaction, nsfw)
+                        await self.process_image(
+                            url, title, post["url"], interaction, nsfw
+                        )
                     elif mime_type.startswith("video"):
-                        await self.process_video(url, title, interaction, nsfw)
+                        await self.process_video(
+                            url, title, post["url"], interaction, nsfw
+                        )
                     elif mime_type.endswith("gif"):
-                        await self.process_gif(url, title, interaction, nsfw)
+                        await self.process_gif(
+                            url, title, post["url"], interaction, nsfw
+                        )
                     else:
                         print(f"Unknown media type for {media_id}")
 
         except Exception as e:
             print("Error processing gallery content:", e)
-            await interaction.followup.send(f"An unexpected error occurred while processing the gallery: {e}")
+            await interaction.followup.send(
+                f"An unexpected error occurred while processing the gallery: {e}"
+            )
 
     # Process the image and send it to the Discord channel
-    async def process_image(self, image_url, title, interaction=None, nsfw=False):
+    async def process_image(
+        self, image_url, title, reddit_post_url=None, interaction=None, nsfw=False
+    ):
         print("Image URL:", image_url)
 
-        image_filename = sanitize_filename(f"{title}.png")
+        image_filename = sanitize_filename(f"{title}.jpg")
 
         async with aiohttp.ClientSession() as session:
             async with session.get(image_url) as response:
@@ -359,82 +402,115 @@ class ScraperBot:
         with open(image_filename, "wb") as file:
             file.write(content)
 
-        title_payload = {"content": f"{title}\n{image_url}"}
+        title_payload = {"content": f"{title}\n<{reddit_post_url}>"}
         files = {"file": open(image_filename, "rb")}
 
-        await self.send_to_discord_channel(title_payload, files, interaction)
-
-        files["file"].close()
-        os.remove(image_filename)
+        try:
+            await self.send_to_discord_channel(title_payload, files, interaction)
+        finally:
+            files["file"].close()
+            os.remove(image_filename)
 
     # Process the video and send it to the Discord channel
-    async def process_video(self, video_url, title, interaction=None, nsfw=False):
+    async def process_video(
+        self, video_url, title, backup_video=None, interaction=None, nsfw=False
+    ):
         print("Video URL:", video_url)
-        
+
         async with aiohttp.ClientSession() as session:
             async with session.get(video_url, timeout=None) as response:
-                content_type = response.headers.get('Content-Type')
-                
+                content_type = response.headers.get("Content-Type")
+
                 if (
                     "application/vnd.apple.mpegurl" in content_type
                     or "application/x-mpegurl" in content_type
                 ):
                     # HLS stream detected, use FFmpeg to convert
                     video_filename = sanitize_filename(f"{title}.mp4")
-                    
+
                     ffmpeg_cmd = [
                         "ffmpeg",
-                        "-i", video_url,
-                        "-c:v", "libx264",  # Video codec
-                        "-crf", "25",  # Constant Rate Factor (0-51, lower is better quality)
-                        "-preset", "veryfast",  # Preset for encoding speed vs. compression ratio
-                        "-max_muxing_queue_size", "1024",  # Max demux queue size
-                        "-c:a", "aac",  # Audio codec
-                        "-b:a", "128k",  # Audio bitrate
-                        "-bsf:a", "aac_adtstoasc",
+                        "-i",
+                        video_url,
+                        "-c:v",
+                        "libx264",  # Video codec
+                        "-crf",
+                        "25",  # Constant Rate Factor (0-51, lower is better quality)
+                        "-preset",
+                        "veryfast",  # Preset for encoding speed vs. compression ratio
+                        "-max_muxing_queue_size",
+                        "1024",  # Max demux queue size
+                        "-c:a",
+                        "aac",  # Audio codec
+                        "-b:a",
+                        "128k",  # Audio bitrate
+                        "-bsf:a",
+                        "aac_adtstoasc",
                         video_filename,
                     ]
-                    
+
                     try:
-                        subprocess.run(ffmpeg_cmd, check=True, timeout=300)  # 5-minute timeout
-                        print(f"Successfully downloaded and processed video: {video_filename}")
-                        
+                        subprocess.run(
+                            ffmpeg_cmd, check=True, timeout=300
+                        )  # 5-minute timeout
+                        print(
+                            f"Successfully downloaded and processed video: {video_filename}"
+                        )
+
                         # Check file size
                         file_size = os.path.getsize(video_filename)
                         if file_size == 0:
                             print("Downloaded video file is empty")
                             return
                         elif file_size > 25 * 1024 * 1024:
-                            print("Downloaded video file is too large to send to Discord")
-                            title_payload = {"content": f"{title}\n{video_url}"}
-                            await self.send_to_discord_channel(title_payload, files=None, interaction=interaction)
+                            print(
+                                "Downloaded video file is too large to send to Discord"
+                            )
+                            title_payload = {"content": f"{title}\n{backup_video}"}
+                            await self.send_to_discord_channel(
+                                title_payload, files=None, interaction=interaction
+                            )
                             return
-                        
+
                         # Send video to Discord
-                        title_payload = {"content": f"{title}\n{video_url}"}
+
+                        # Regular expression to remove the /DASH and everything after it
+                        trimmed_video_url = re.sub(r"/DASH.*", "", backup_video)
+
+                        title_payload = {"content": f"{title}\n<{trimmed_video_url}>"}
                         if nsfw:
-                            title_payload["content"] = f"NSFW: {title}\n{video_url}"
+                            title_payload["content"] = (
+                                f"NSFW: {title}\n{trimmed_video_url}"
+                            )
                         files = {"file": open(video_filename, "rb")}
-                        
-                        await self.send_to_discord_channel(title_payload, files, interaction)
-                        
+
+                        await self.send_to_discord_channel(
+                            title_payload, files, interaction
+                        )
+
                         files["file"].close()
                         os.remove(video_filename)
-                        
+
                     except subprocess.TimeoutExpired:
                         print("FFmpeg process timed out")
                         return
                     except subprocess.CalledProcessError as e:
                         print(f"Error processing video: {e}")
                         return
-                
+
                 else:
                     # Regular video file, handle as before
-                    content_length = response.headers.get('Content-Length')
-                    if content_length and int(content_length) > 25 * 1024 * 1024:  # 25MB limit
-                        print(f"Video at {video_url} is larger than 25MB, skipping processing.")
+                    content_length = response.headers.get("Content-Length")
+                    if (
+                        content_length and int(content_length) > 25 * 1024 * 1024
+                    ):  # 25MB limit
+                        print(
+                            f"Video at {video_url} is larger than 25MB, skipping processing."
+                        )
                         title_payload = {"content": f"{title}\n{video_url}"}
-                        await self.send_to_discord_channel(title_payload, files=None, interaction=interaction)
+                        await self.send_to_discord_channel(
+                            title_payload, files=None, interaction=interaction
+                        )
                         return
 
                     extension = os.path.splitext(urlparse(video_url).path)[1] or ".mp4"
@@ -453,13 +529,17 @@ class ScraperBot:
                         title_payload["content"] = f"NSFW: {title}\n{video_url}"
                     files = {"file": open(video_filename, "rb")}
 
-                    await self.send_to_discord_channel(title_payload, files, interaction)
+                    await self.send_to_discord_channel(
+                        title_payload, files, interaction
+                    )
 
                     files["file"].close()
                     os.remove(video_filename)
 
     # Process the gif and send it to the Discord channel
-    async def process_gif(self, gif_url, title, interaction=None, nsfw=False):
+    async def process_gif(
+        self, gif_url, title, reddit_post_url=None, interaction=None, nsfw=False
+    ):
         print("Gif URL:", gif_url)
         async with aiohttp.ClientSession() as session:
             async with session.get(gif_url) as response:
@@ -470,7 +550,7 @@ class ScraperBot:
         with open(gif_filename, "wb") as file:
             file.write(content)
 
-        title_payload = {"content": f"{title}\n{gif_url}"}
+        title_payload = {"content": f"{title}\n<{reddit_post_url}>"}
         files = {"file": open(gif_filename, "rb")}
 
         await self.send_to_discord_channel(title_payload, files, interaction)
@@ -492,7 +572,9 @@ class ScraperBot:
         if files:
             for key, value in files.items():
                 if value:
-                    if key == "file" and not title_payload["content"].endswith((".jpg", ".jpeg", ".png")):
+                    if key == "file" and not title_payload["content"].endswith(
+                        (".jpg", ".jpeg", ".png")
+                    ):
                         await text_channel.send(file=discord.File(value))
                     files[key].close()
 
