@@ -40,6 +40,7 @@ class ScraperBot:
             if subreddit_number in self.subreddits:
                 subreddit_url = self.subreddits[subreddit_number]
 
+                # Limit the number of posts to scrape, between 1 and 5
                 if num_posts > 5:
                     num_posts = 5
                 elif num_posts < 1:
@@ -83,6 +84,7 @@ class ScraperBot:
             )
             if subreddit_exists:
 
+                # Limit the number of posts to scrape, between 1 and 5
                 if num_posts > 5:
                     num_posts = 5
                 elif num_posts < 1:
@@ -164,7 +166,7 @@ class ScraperBot:
         async def num_posts_autocomplete(
             interaction: discord.Interaction, current: str
         ):
-            return [
+            return [ 
                 app_commands.Choice(name=str(n), value=n)
                 for n in NUM_POSTS
                 if current in str(n)

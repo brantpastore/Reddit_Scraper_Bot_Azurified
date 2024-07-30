@@ -17,8 +17,8 @@ class WebScraper:
     ):
         print(f"Scraping {num_posts} posts from: {subreddit_url}")
 
+        # Default to hot if filter type is not provided, or if it's invalid
         try:
-            
             if filter_type in ["top", "controversial"]:
                 response = requests.get(
                     f"https://oauth.reddit.com/r/{subreddit_url}/{filter_type}?limit={num_posts}&t={time_range}",
